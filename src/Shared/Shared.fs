@@ -2,9 +2,17 @@ namespace Shared
 
 type Counter = { Value : int }
 
+type ActiveUserRoles =
+| Developer
+| Admin
+| UserManager
+| User
+| Guest
+
 type User = {
     Username : string
     Email : string
+    Role : ActiveUserRoles
 }
 
 type LoginModel = {
@@ -52,3 +60,17 @@ type IDotnetSecureApi = {
     dotnetUserLogOut : unit -> Async<DotnetLogOutResults>
     getUserCounter : unit -> Async<Counter>
 }
+
+type IAdminSecureApi = {
+    dotnetGetAllUsers : unit -> Async<User []>
+}
+
+module AuxFunctions =
+
+    let stringToRoles (str:string) =
+        match str with
+        | "Developer" -> Developer
+        | "Admin" -> Admin
+        | "UserManager" -> UserManager
+        | "User" -> User
+        | _ -> Guest

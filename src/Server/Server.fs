@@ -13,6 +13,7 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Identity.EntityFrameworkCore
 open Microsoft.EntityFrameworkCore
 open FSharp.Control.Tasks
+open System.Security.Claims
 
 let tryGetEnv = System.Environment.GetEnvironmentVariable >> function null | "" -> None | x -> Some x
 
@@ -47,18 +48,29 @@ module DotnetModule =
         task {
             let userManager = context.GetService<UserManager<IdentityUser>>()
             let! user = userManager.GetUserAsync context.User
-            return { Username = user.UserName; Email = user.Email }
+            let! getRole= (userManager.GetClaimsAsync(user))
+            let role = getRole |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Shared.AuxFunctions.stringToRoles)
+            return { Username = user.UserName; Email = user.Email; Role = role }
         } |> fun x -> x.Result
 
-    //let dotnetRoleTESTING (context: HttpContext) =
-    //    task {
-    //        let userManager = context.GetService<UserManager<IdentityUser>>()
-    //        let! user = userManager.GetUserAsync context.User
-    //        let! newUM = new UserManager<IdentityUser>()
-    //        ///https://stackoverflow.com/questions/19689183/add-user-to-role-asp-net-identity
-    //        let newTEST = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(new IdentityDbContext()))
-    //        return bewTEST.
-    //    } |> fun x -> x.Result
+    let dotnetGetAllUsers (context: HttpContext) =
+        task {
+            let userManager = context.GetService<UserManager<IdentityUser>>()
+            let! userList = userManager.Users.ToArrayAsync()
+            let createUser =
+                userList
+                |> Array.map (
+                    fun x ->
+                        let getRole = (userManager.GetClaimsAsync(x))
+                        let role = getRole.Result |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Shared.AuxFunctions.stringToRoles)
+                        {
+                            Username = x.UserName;
+                            Email = x.Email;
+                            Role = role
+                        }
+                    )
+            return createUser
+        } |> fun x -> x.Result
 
     let dotnetUserLogOut (context: HttpContext) =
         task {
@@ -68,7 +80,6 @@ module DotnetModule =
         } |> fun x -> x.Result
 
     let dotnetRegistration (registerModel:RegisterModel) (context: HttpContext) =
-
         task {
             let  user        = IdentityUser(UserName = registerModel.Username, Email = registerModel.Email)
             let  userManager = context.GetService<UserManager<IdentityUser>>()
@@ -76,18 +87,22 @@ module DotnetModule =
             match result.Succeeded with
             | false -> return (RegisterFail (showErrors result.Errors))
             | true  ->
-                let signInManager = context.GetService<SignInManager<IdentityUser>>()
-                do! signInManager.SignInAsync(user, true)
-                return RegisterSuccess "Registration Successful"
+                let! addingClaims = userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, "User"))
+                match addingClaims.Succeeded with
+                | false -> return (RegisterFail (showErrors result.Errors))
+                | true  -> let signInManager = context.GetService<SignInManager<IdentityUser>>()
+                           do! signInManager.SignInAsync(user, true)
+                           return RegisterSuccess "Registration Successful"
         } |> fun x -> x.Result
+
+let nice() =
+    { Value = 69 }
+
 
 let dotnetApi (context: HttpContext) = {
     dotnetLogin = fun (loginModel) -> async { return (DotnetModule.dotnetLogin loginModel context) }
     dotnetRegister = fun (registerModel) -> async { return (DotnetModule.dotnetRegistration registerModel context) }
 }
-
-let nice() =
-    { Value = 69 }
 
 let dotnetSecureApi (context: HttpContext) = {
     dotnetGetUser = fun () -> async { return (DotnetModule.dotnetGetUser context)}
@@ -97,6 +112,10 @@ let dotnetSecureApi (context: HttpContext) = {
 
 let counterApi = {
     initialCounter = fun () -> async {return { Value = 42 }}
+}
+
+let adminSecureApi (context: HttpContext) = {
+    dotnetGetAllUsers = fun () -> async { return DotnetModule.dotnetGetAllUsers context}
 }
 
 open Microsoft.AspNetCore.Builder
@@ -154,9 +173,16 @@ let configureServices (services : IServiceCollection) =
     services.AddDefaultIdentity<IdentityUser>(
         fun options ->
             options.User.RequireUniqueEmail <- true
+            options.Password.RequireDigit <- false
+            options.Password.RequiredLength <- 4
+            options.Password.RequiredUniqueChars <- 2
+            options.Password.RequireLowercase <- false
+            options.Password.RequireNonAlphanumeric <- false
+            options.Password.RequireUppercase <- false
         )
         .AddEntityFrameworkStores<IdentityDbContext>()
         .AddDefaultTokenProviders()
+        //.AddRoleManager<IdentityRole>()
         |> ignore
 
 
@@ -202,8 +228,18 @@ let webApp =
         |> Remoting.withDiagnosticsLogger (printfn "%s")
         |> Remoting.buildHttpHandler
 
+    let adminSecureApi =
+        Remoting.createApi()
+        |> Remoting.withRouteBuilder Route.builder
+        |> Remoting.fromContext adminSecureApi
+        |> Remoting.withDiagnosticsLogger (printfn "%s")
+        |> Remoting.buildHttpHandler
+
     let mustBeLoggedIn : HttpHandler =
         requiresAuthentication (redirectTo false "/")
+
+    let mustBeDeveloper : HttpHandler =
+        authorizeUser (fun u -> u.HasClaim (ClaimTypes.Name, "Kevin") (*|| u.HasClaim (ClaimTypes.Role, "Developer")*)) (setStatusCode 401 >=> text "Access Denied")
 
     router {
         not_found_handler (setStatusCode 404 >=> text "Not Found")
@@ -211,6 +247,7 @@ let webApp =
         forward "" dotnetServiceApi
         forward "" userApi
         forward "" (mustBeLoggedIn >=> dotnetSecureApi)
+        forward "" (mustBeLoggedIn >=> mustBeDeveloper >=> adminSecureApi)
     }
 
 //https://saturnframework.org/docs/api/application/

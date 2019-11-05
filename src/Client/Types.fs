@@ -19,11 +19,6 @@ type ExtraReactElement =
 |RegisterModal
 |Message of string
 
-type ActiveUserRoles =
-| Admin
-| UserManager
-| User
-
 type MainReactElement =
 | Counter
 | UserAccount
@@ -46,6 +41,7 @@ type Model = {
     ExtraReactElement : ExtraReactElement
     MainReactElement : MainReactElement
     ShowMenuBool : bool
+    AdminOnlyUserList : User []
     }
 
 // The Msg type defines what events/actions can occur while the application is running
@@ -73,6 +69,9 @@ type Msg =
     | DotnetLogOutResponse of Result<DotnetLogOutResults,exn>
     | GetUserCounterRequest
     | GetUserCounterResponse of Result<Counter,exn>
+    | AdminGetAllUsersRequest
+    | AdminGetAllUsersResponse of Result<User [],exn>
+
 
 module ServerPath =
     open System
@@ -123,3 +122,8 @@ module Server =
         Remoting.createApi()
         |> Remoting.withRouteBuilder normalizeRoutes
         |> Remoting.buildProxy<IDotnetSecureApi>
+
+    let dotnetAdminSecureApi: IAdminSecureApi =
+        Remoting.createApi()
+        |> Remoting.withRouteBuilder normalizeRoutes
+        |> Remoting.buildProxy<IAdminSecureApi>

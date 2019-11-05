@@ -27,6 +27,7 @@ let init () : Model * Cmd<Msg> =
         ExtraReactElement = EmptyElement
         MainReactElement = Counter
         ShowMenuBool = false
+        AdminOnlyUserList = [||]
     }
     let loadCountCmd =
         Cmd.OfAsync.perform
@@ -65,6 +66,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         let nextModel = {
             currentModel with
                 MainReactElement = newElement
+                ShowMenuBool = false
         }
         nextModel, Cmd.none
         /// functions to manage input fields for user log in
@@ -235,6 +237,32 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
     | _, DotnetLogOutResponse (Error e) ->
         let nextModel = {
             currentModel with
+                ErrorMsg = Some e.Message
+        }
+        nextModel, Cmd.none
+    | _, AdminGetAllUsersRequest ->
+        let nextModel = {
+            currentModel with
+                Loading = true
+        }
+        let cmd =
+            Cmd.OfAsync.either
+                Server.dotnetAdminSecureApi.dotnetGetAllUsers
+                    ()
+                    (Ok >> AdminGetAllUsersResponse)
+                    (Error >> AdminGetAllUsersResponse)
+        nextModel,cmd
+    | _, AdminGetAllUsersResponse (Ok value) ->
+        let nextModel = {
+            currentModel with
+                Loading = false
+                AdminOnlyUserList = value
+        }
+        nextModel, Cmd.none
+    | _, AdminGetAllUsersResponse (Error e) ->
+        let nextModel = {
+            currentModel with
+                Loading = false
                 ErrorMsg = Some e.Message
         }
         nextModel, Cmd.none

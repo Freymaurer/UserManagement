@@ -50,10 +50,6 @@ let inputRegisterBox inputElement header valueOrDefault msg =
         ]
         inputElement [
             Input.OnChange msg
-                //(fun e ->
-                //    let newModel = {model.RegisterModel with Username = e.Value}
-                //    dispatch (UpdateRegisterModel newModel)
-                //    )
             Input.ValueOrDefault valueOrDefault
             Input.Props [
                 Style [
@@ -67,6 +63,9 @@ let inputRegisterBox inputElement header valueOrDefault msg =
 let registerModal (model : Model) (dispatch : Msg -> unit) =
     Modal.modal [
         Modal.IsActive true
+        Modal.Props [
+            onEnter (DotnetRegisterRequest model.RegisterModel) dispatch
+        ]
         ] [
         Modal.background [ Props [OnClick (fun _ -> dispatch (UpdateExtraElement EmptyElement) )] ] [ ]
         Modal.Card.card [
@@ -322,7 +321,7 @@ let menuItem label msg =
         [ str label ]
 
 // Helper to generate a sub menu
-let subMenu label  children =
+let subMenu label children =
     li [ ] [
         Menu.Item.a [ ]
            [ str label ]
@@ -330,6 +329,16 @@ let subMenu label  children =
     ]
 
 let menu (model:Model) dispatch =
+    let authentificationLevel =
+        if model.User.IsNone then 0 else
+        match model.User.Value.Role with
+        | Developer -> 10
+        | Admin -> 8
+        | UserManager -> 5
+        | User -> 2
+        | _ -> 0
+    let hideElementsBy threshold=
+        Screen.All, if authentificationLevel >= threshold then false else true
     let unAuthenticated =
         div [
             Style [BackgroundColor "white";PaddingTop "1rem";PaddingLeft "1rem";Height "100%";]
@@ -343,16 +352,18 @@ let menu (model:Model) dispatch =
         ] [
             Menu.label [ ] [ str "User Account" ]
             Menu.list [ ]
-              [ menuItem "Settings" (fun _ -> dispatch (ChangeMainReactElement UserAccount)) ]
-            Menu.label [ ] [ str "Account Management" ]
-            Menu.list [ ]
-              [ menuItem "User List"  (fun _ -> dispatch (ChangeMainReactElement UserList))
+              [ menuItem "Account Information" (fun _ -> dispatch (ChangeMainReactElement UserAccount)) ]
+            Menu.label [ Modifiers [Modifier.IsHidden (hideElementsBy 5)] ] [ str "Account Management" ]
+            Menu.list [ Modifiers [Modifier.IsHidden (hideElementsBy 5)] ]
+              [ menuItem "User List"  (fun _ ->
+                    dispatch AdminGetAllUsersRequest
+                    dispatch (ChangeMainReactElement UserList))
                 subMenu "Role Rights"
                       [ menuItem "Members" (fun _ -> dispatch (ChangeMainReactElement (RoleRights User)))
                         menuItem "User Manager" (fun _ -> dispatch (ChangeMainReactElement (RoleRights UserManager)))
                         menuItem "Admin" (fun _ -> dispatch (ChangeMainReactElement (RoleRights Admin))) ] ] 
-            Menu.label [] [str "Debug"]
-            Menu.list []
+            Menu.label [ Modifiers [Modifier.IsHidden (hideElementsBy 10)] ] [str "Debug"]
+            Menu.list [Modifiers [Modifier.IsHidden (hideElementsBy 10)]]
                 [menuItem "Test Counter" (fun _ -> dispatch (ChangeMainReactElement Counter))]
         ]
     match model.Authenticated with
@@ -399,6 +410,9 @@ let menuCard model dispatch =
                         ]
                     ] [ ]
                 ]
+                Navbar.Item.div [Navbar.Item.Props [ Style [ MarginLeft "1rem"; MarginRight "0.5rem" ;MinHeight "3.25rem"] ]][
+                    div [ Style[Color "#e6e6e6"] ][str (if model.User.IsSome then model.User.Value.Username else "Log In")]
+                ]
             ]
             menu model dispatch
         ]
@@ -406,7 +420,7 @@ let menuCard model dispatch =
 
 let constructionLabel model dispatch =
     Column.column [ Column.Width (Screen.All,Column.IsHalf); Column.Offset (Screen.All, Column.IsOneQuarter);][
-        Box.box' [ Modifiers [Modifier.TextColor IsWarning; Modifier.BackgroundColor Color.IsWhiteTer] ][
+        Box.box' [ Modifiers [Modifier.BackgroundColor Color.IsWhiteTer]; Props[Style[Color "#ff9900"]] ][
             p [Style [TextAlign TextAlignOptions.Center;FontWeight "bold"]][str "ATTENTION YOU ENTERED A LINK THAT IS STILL UNDER CONSTRUCTION!"]
             p [Style [TextAlign TextAlignOptions.Center;FontWeight "bold"]][str "PLEASE COME AGAIN LATER!"]
             div [ Style [Width "100%";MarginTop "2rem"; Display DisplayOptions.Flex; JustifyContent "center" ] ][
@@ -419,6 +433,54 @@ let constructionLabel model dispatch =
 
 /// View for User Account Information
 
+let informationColumn headerStr informationStr =
+    Columns.columns [][
+        Column.column [][
+            Heading.h5 [][str headerStr]
+            Heading.h6 [Heading.IsSubtitle][str informationStr]
+        ]
+        Column.column [ Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Right)] ][
+            Button.a [][str "Change"]
+        ]
+    ]
+
 let userAccountElement model dispatch =
-    str "hello"
-    
+    let elementFallbackIfEmpty =
+        if model.User.IsNone || model.Authenticated = false
+        then [ str "Access Denied" ]
+        else [ informationColumn "Name" model.User.Value.Username; informationColumn "E-Mail" model.User.Value.Email; informationColumn "Role" (string model.User.Value.Role) ]
+    div [Style [MarginTop "5%"; MarginBottom "5%"]][
+        Column.column [ Column.Width (Screen.All,Column.IsHalf);Column.Offset (Screen.All,Column.IsOneQuarter) ][
+            Box.box' [
+                Props[
+                    Style[
+                        Padding "5% 5% 5% 5%"
+                    ]
+                ]
+            ]
+                elementFallbackIfEmpty
+        ]
+    ]
+
+/// View for User List Information
+
+let userDisplay (user:User) =
+    div [][
+        str user.Username
+        str user.Email
+        str (string user.Role)
+    ]
+
+let userListElement (model:Model) dispatch =
+    div [Style [MarginTop "5%"; MarginBottom "5%"]][
+        Column.column [ Column.Width (Screen.All,Column.IsHalf);Column.Offset (Screen.All,Column.IsOneQuarter) ][
+            Box.box' [
+                Props[
+                    Style[
+                        Padding "5% 5% 5% 5%"
+                    ]
+                ]
+            ] (model.AdminOnlyUserList |> Seq.map (fun userVal -> userDisplay userVal) |> List.ofSeq)
+            //
+        ]
+    ]

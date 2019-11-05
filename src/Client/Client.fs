@@ -21,6 +21,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
             match model.MainReactElement with
             | Counter -> counter model dispatch
             | UserAccount -> userAccountElement model dispatch
+            | UserList -> userListElement model dispatch
             | _ -> constructionLabel model dispatch
         )
         Footer.footer [ ]
