@@ -50,6 +50,16 @@ module DotnetModule =
             return { Username = user.UserName; Email = user.Email }
         } |> fun x -> x.Result
 
+    //let dotnetRoleTESTING (context: HttpContext) =
+    //    task {
+    //        let userManager = context.GetService<UserManager<IdentityUser>>()
+    //        let! user = userManager.GetUserAsync context.User
+    //        let! newUM = new UserManager<IdentityUser>()
+    //        ///https://stackoverflow.com/questions/19689183/add-user-to-role-asp-net-identity
+    //        let newTEST = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(new IdentityDbContext()))
+    //        return bewTEST.
+    //    } |> fun x -> x.Result
+
     let dotnetUserLogOut (context: HttpContext) =
         task {
             let signInManager = context.GetService<SignInManager<IdentityUser>>()
