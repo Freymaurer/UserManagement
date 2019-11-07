@@ -16,6 +16,12 @@ type User = {
     Role : ActiveUserRoles
 }
 
+type UserParameters =
+|Username
+|Password
+|Email
+|Role
+
 type LoginModel = {
     Username : string
     Password : string
@@ -43,6 +49,10 @@ type DotnetDeleteAccountResults =
 | DeleteSuccess of string
 | DeleteFail of string
 
+type DotnetChangeParameterResults =
+| ChangeParamSuccess of string
+| ChangeParamFail of string
+
 module Route =
     /// Defines how routes are generated on server and mapped from client
     let builder typeName methodName =
@@ -65,12 +75,14 @@ type IDotnetSecureApi = {
     dotnetGetUser : unit -> Async<User>
     dotnetUserLogOut : unit -> Async<DotnetLogOutResults>
     dotnetDeleteUserAccount : LoginModel -> Async<DotnetDeleteAccountResults>
+    dotnetChangeUserParameters : LoginModel * UserParameters * string -> Async<DotnetChangeParameterResults>
 }
 
 type IAdminSecureApi = {
     dotnetGetAllUsers : unit -> Async<User []>
     adminRegisterUser : RegisterModel*ActiveUserRoles -> Async<DotnetRegisterResults>
     adminDeleteAccount : LoginModel * User -> Async<DotnetDeleteAccountResults>
+    adminChangeUserParameters : LoginModel * User * UserParameters * string -> Async<DotnetChangeParameterResults>
 }
 
 module AuxFunctions =
@@ -82,3 +94,20 @@ module AuxFunctions =
         | "UserManager" -> UserManager
         | "User" -> User
         | _ -> Guest
+
+    let authentificationLevelByUser (user:User option)=
+        if user.IsNone then 0 else
+        match user.Value.Role with
+        | Developer -> 10
+        | Admin -> 8
+        | UserManager -> 5
+        | User -> 2
+        | _ -> 0
+
+    let authentificationLevelByRole (role:string)=
+        match role with
+        | "Developer" -> 10
+        | "Admin" -> 8
+        | "UserManager" -> 5
+        | "User" -> 2
+        | _ -> 0

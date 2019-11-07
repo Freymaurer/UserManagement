@@ -17,11 +17,11 @@ open Fable.React.Props
 
 let extraEle model dispatch =
     match model.ExtraReactElement with
-    |EmptyElement -> emptyStr
-    |RegisterModal -> registerModal model dispatch
-    |AdminRegisterModal -> adminRegisterModal model dispatch
-    |Message x -> messageContainer x (fun _ -> dispatch (UpdateExtraElement EmptyElement))
-    |VerifyLoginModal (x,str) -> verifyLoginModal model str dispatch x
+    | EmptyElement -> emptyStr
+    | RegisterModal -> registerModal model dispatch
+    | AdminRegisterModal -> adminRegisterModal model dispatch
+    | Message x -> messageContainer x (fun _ -> dispatch (UpdateExtraElement EmptyElement))
+    | VerifyLoginModal (x,ele) -> verifyLoginModal model ele dispatch x
 
 let view (model : Model) (dispatch : Msg -> unit) =
     div [ ] [

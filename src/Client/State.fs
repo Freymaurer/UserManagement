@@ -18,10 +18,11 @@ open Client.Types
 let init () : Model * Cmd<Msg> =
     let initialModel = {
         Counter = None
+        ErrorMsg = None
+        InputString = ""
         User = None
         Loading = true
         Authenticated = false
-        ErrorMsg = None
         LoginModel = {Username = ""; Password = ""}
         RegisterModel = {Username = "";Password = "";Email = ""}
         ExtraReactElement = EmptyElement
@@ -58,6 +59,12 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
     | Some counter, Decrement ->
         let nextModel = { currentModel with Counter = Some { Value = counter.Value - 1 } }
         nextModel, Cmd.none
+    | _, UpdateInputString (str) ->
+        let nextModel = {
+            currentModel with
+                InputString = str
+        }
+        nextModel,Cmd.none
     | _, InitialCountLoaded initialCount ->
         let nextModel = { currentModel with Counter = Some initialCount; Loading = false }
         nextModel, Cmd.none
@@ -291,6 +298,43 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ErrorMsg = Some e.Message
         }
         nextModel, Cmd.none
+    | _, DotnetChangeUserParamRequest (loginModel, userParam, input) ->
+        let cmd =
+            Cmd.OfAsync.either
+                Server.dotnetSecureApi.dotnetChangeUserParameters
+                (loginModel, userParam, input)
+                (Ok >> DotnetChangeUserParamResponse)
+                (Error >> DotnetChangeUserParamResponse)
+        let nextModel = {
+            currentModel with
+                Loading = true
+        }
+        nextModel, cmd
+    | _, DotnetChangeUserParamResponse (Ok value) ->
+        match value with
+        | ChangeParamSuccess str ->
+            let nextModel = {
+                currentModel with
+                    Loading = false
+                    ExtraReactElement = Message str
+                    LoginModel = {Username = ""; Password = ""}
+                    MainReactElement = Counter
+                }
+            nextModel, Cmd.ofMsg DotnetGetUserRequest
+        | ChangeParamFail str ->
+            let nextModel = {
+                currentModel with
+                    Loading = false
+                    ExtraReactElement = Message str
+                    LoginModel = {currentModel.LoginModel with Password = ""}
+                }
+            nextModel, Cmd.none
+    | _, DotnetChangeUserParamResponse (Error e) ->
+        let nextModel = {
+            currentModel with
+                ExtraReactElement = Message e.Message
+        }
+        nextModel, Cmd.none
     | _, DeleteAccountRequest (loginModel) ->
         let cmd =
             Cmd.OfAsync.either
@@ -384,6 +428,43 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 RegisterModel = {currentModel.RegisterModel with Password = ""}
         }
         nextModel, Cmd.none
+    | _, AdminChangeUserParamsRequest (loginModel,user,userParam,input) ->
+        let cmd =
+            Cmd.OfAsync.either
+                Server.dotnetAdminSecureApi.adminChangeUserParameters
+                (loginModel,user,userParam,input)
+                (Ok >> AdminChangeUserParamsResponse)
+                (Error >> AdminChangeUserParamsResponse)
+        let nextModel = {
+            currentModel with
+                Loading = true
+        }
+        nextModel, cmd
+    | _, AdminChangeUserParamsResponse (Ok value) ->
+        match value with
+        | ChangeParamSuccess str ->
+            let nextModel = {
+                currentModel with
+                    Loading = false
+                    ExtraReactElement = Message (str + "Account Parameter successfully changed")
+                    MainReactElement = UserList
+                    LoginModel = {Username = "";Password = ""}
+            }
+            nextModel,Cmd.ofMsg AdminGetAllUsersRequest
+        | ChangeParamFail str ->
+            let nextModel = {
+                currentModel with
+                    Loading = false
+                    ExtraReactElement = Message str
+            }
+            nextModel,Cmd.none
+    | _, AdminChangeUserParamsResponse (Error e) ->
+        let nextModel = {
+            currentModel with
+                Loading = false
+                ExtraReactElement = Message e.Message
+        }
+        nextModel,Cmd.none
     | _, AdminDeleteAccountRequest (loginModel,user) ->
         let cmd =
             Cmd.OfAsync.either

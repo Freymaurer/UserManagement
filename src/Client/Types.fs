@@ -25,7 +25,7 @@ type MainReactElement =
 type ExtraReactElement =
 |EmptyElement
 |RegisterModal
-|VerifyLoginModal of Msg * String
+|VerifyLoginModal of Msg * ReactElement
 |AdminRegisterModal
 |Message of string
 
@@ -36,6 +36,7 @@ type ExtraReactElement =
 and Model = {
     Counter: Counter option
     ErrorMsg : string option
+    InputString : string
     LoginModel : LoginModel
     RegisterModel : RegisterModel
     User : User option
@@ -62,6 +63,7 @@ and Msg =
     | AdminSelectAssignRole of ActiveUserRoles
     | Increment
     | Decrement
+    | UpdateInputString of string
     | InitialCountLoaded of Counter
     | InitialUserLoaded of User
     | UpdateLoginUsername of string
@@ -79,6 +81,8 @@ and Msg =
     | DotnetGetUserResponse of Result<User,exn>
     | DotnetLogOutRequest
     | DotnetLogOutResponse of Result<DotnetLogOutResults,exn>
+    | DotnetChangeUserParamRequest of LoginModel * UserParameters * string
+    | DotnetChangeUserParamResponse of Result<DotnetChangeParameterResults,exn>
     | GetUserCounterRequest
     | GetUserCounterResponse of Result<Counter,exn>
     | DeleteAccountRequest of LoginModel
@@ -87,6 +91,8 @@ and Msg =
     | AdminGetAllUsersResponse of Result<User [],exn>
     | AdminRegisterUserRequest of RegisterModel * ActiveUserRoles
     | AdminRegisterUserResponse of Result<DotnetRegisterResults,exn>
+    | AdminChangeUserParamsRequest of LoginModel * User * UserParameters * string
+    | AdminChangeUserParamsResponse of Result<DotnetChangeParameterResults,exn>
     | AdminDeleteAccountRequest of LoginModel * User
     | AdminDeleteAccountResponse of Result<DotnetDeleteAccountResults,exn>
 

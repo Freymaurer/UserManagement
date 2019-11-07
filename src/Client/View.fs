@@ -118,11 +118,13 @@ let registerModal (model : Model) (dispatch : Msg -> unit) =
         ] 
     ]
 
-let verifyLoginModal (model : Model) infoText (dispatch : Msg -> unit) msgInput =
+let verifyLoginModal (model : Model) extraElement (dispatch : Msg -> unit) msgInput =
     let msg =
         match msgInput with
-        | DeleteAccountRequest _ ->DeleteAccountRequest model.LoginModel
+        | DeleteAccountRequest _ -> DeleteAccountRequest model.LoginModel
         | AdminDeleteAccountRequest _ -> AdminDeleteAccountRequest (model.LoginModel,model.AdminViewUser.Value)
+        | DotnetChangeUserParamRequest (_,userParam,_) -> DotnetChangeUserParamRequest (model.LoginModel,userParam,model.InputString)
+        | AdminChangeUserParamsRequest (_,_,userParam,_) -> AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,userParam,model.InputString)
         | _ -> UpdateExtraElement (Message "There went something wrong! This should never happen")
     Modal.modal [
         Modal.IsActive true
@@ -137,20 +139,20 @@ let verifyLoginModal (model : Model) infoText (dispatch : Msg -> unit) msgInput 
                 Modifiers [Modifier.BackgroundColor IsWhite]
                 Props [ Style [ BorderBottom "0px"] ]
             ] [
-                Modal.Card.title [ Props [ Style [ PaddingTop "2rem" ] ] ] [
+                Modal.Card.title [ Props [ Style [ PaddingTop "1.5rem" ] ] ] [
                     str "Verify your Login"
                 ]
             ]
             Modal.Card.body  [ ] [
-                text [] [str infoText]
+                extraElement
                 inputRegisterBox
                     Input.text
-                    "Username"
+                    "Current Username"
                     model.LoginModel.Username
                     (fun e -> dispatch (UpdateLoginUsername e.Value))
                 inputRegisterBox
                     Input.password
-                    "Password"
+                    "Current Password"
                     model.LoginModel.Password
                     (fun e -> dispatch (UpdateLoginUserPw e.Value))
                 Columns.columns [ Columns.Props [ Style [ PaddingTop "2rem" ] ] ] [
@@ -447,16 +449,8 @@ let subMenu label children =
     ]
 
 let menu (model:Model) dispatch =
-    let authentificationLevel =
-        if model.User.IsNone then 0 else
-        match model.User.Value.Role with
-        | Developer -> 10
-        | Admin -> 8
-        | UserManager -> 5
-        | User -> 2
-        | _ -> 0
     let hideElementsBy threshold=
-        Screen.All, if authentificationLevel >= threshold then false else true
+        Screen.All, if AuxFunctions.authentificationLevelByUser model.User >= threshold then false else true
     let unAuthenticated =
         div [
             Style [BackgroundColor "white";PaddingTop "1rem";PaddingLeft "1rem";Height "100%";]
@@ -548,33 +542,125 @@ let constructionLabel model dispatch =
 
 /// View for User Account Information
 
-let userAccountinformationColumn headerStr informationStr =
+let userAccountinformationColumn headerStr informationStr msg =
     Columns.columns [][
         Column.column [][
             Heading.h5 [][str headerStr]
             Heading.h6 [Heading.IsSubtitle][str informationStr]
         ]
         Column.column [ Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Right)] ][
-            Button.a [][str "Change"]
+            Button.a [ Button.OnClick msg ][str "Change"]
         ]
     ]
 
-let userAccountElement model dispatch (user:User) =
+let inputUsername dispatch =
+    Container.container [][
+        text [][str "Type in your new username and verify your login data."]
+        Column.column [][
+            Input.text [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Username"]
+        ]
+    ]
+
+let inputEmail dispatch =
+    Container.container [][
+        text [][str "Type in your new Email adress and verify your login data."]
+        Column.column [][
+            Input.email [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Email"]
+        ]
+    ]
+
+let inputPw dispatch =
+    Container.container [][
+        text [][str "Type in your new password and verify your login data."]
+        Column.column [][
+            Input.password [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Password"]
+        ]
+    ]
+
+let inputUsernameAdmin dispatch =
+    Container.container [][
+        text [][str "You are about to change a users account parameters! Type in the new username and verify your login data."]
+        Column.column [][
+            Input.text [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Username"]
+        ]
+    ]
+
+let inputEmailAdmin dispatch =
+    Container.container [][
+        text [][str "You are about to change a users account parameters! Type in the new Email adress and verify your login data."]
+        Column.column [][
+            Input.email [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Email"]
+        ]
+    ]
+
+let inputPwAdmin dispatch =
+    Container.container [][
+        text [][str "You are about to change a users account parameters! Type in the new password and verify your login data."]
+        Column.column [][
+            Input.password [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Password"]
+        ]
+    ]
+
+let inputRoleAdmin dispatch =
+    Container.container [][
+        text [][str "You are about to change a users account parameters! Type in the new role and verify your login data."]
+        Column.column [][
+            Input.text [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Role"]
+        ]
+    ]
+
+let userAccountElement model (dispatch : Msg -> unit) (user:User) =
     let elementFallbackIfEmpty =
         if model.User.IsNone || model.Authenticated = false
         then [ str "Access Denied" ]
-        else [ userAccountinformationColumn "Name" user.Username; userAccountinformationColumn "E-Mail"user.Email; userAccountinformationColumn "Role" (string user.Role) ]
+        else
+            let extraElementUserName =
+                if model.AdminViewUser.IsNone || user <> model.AdminViewUser.Value
+                then VerifyLoginModal (DotnetChangeUserParamRequest (model.LoginModel,Username,""), inputUsername dispatch)
+                else VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Username,""), inputUsernameAdmin dispatch)
+            let extraElementEmail =
+                if model.AdminViewUser.IsNone || user <> model.AdminViewUser.Value
+                then VerifyLoginModal (DotnetChangeUserParamRequest (model.LoginModel,Email,""), inputEmail dispatch)
+                else VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Email,""), inputEmailAdmin dispatch)
+            let extraElementPassword =
+                if model.AdminViewUser.IsNone || user <> model.AdminViewUser.Value
+                then VerifyLoginModal (DotnetChangeUserParamRequest (model.LoginModel,Password,""), inputPw dispatch)
+                else VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Password,""), inputPwAdmin dispatch)
+            let extraElementRole =
+                VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Role,""), inputRoleAdmin dispatch)
+            [
+                userAccountinformationColumn "Name" user.Username (fun _ -> dispatch (UpdateExtraElement extraElementUserName))
+                userAccountinformationColumn "E-Mail"user.Email (fun _ -> dispatch (UpdateExtraElement extraElementEmail))
+                Columns.columns [][
+                    Column.column [][
+                        Heading.h5 [][str "Password"]
+                        Heading.h6 [Heading.IsSubtitle] [str "******"]
+                    ]
+                    Column.column [ Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Right)] ][
+                        Button.a [ Button.OnClick (fun _ -> dispatch (UpdateExtraElement extraElementPassword)) ][str "Change"]
+                    ]
+                ]
+                Columns.columns [][
+                    Column.column [][
+                        Heading.h5 [][str "Role"]
+                        Heading.h6 [Heading.IsSubtitle][str (string user.Role)]
+                    ]
+                    Column.column [ Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Right)] ][
+                        (if AuxFunctions.authentificationLevelByUser model.User >= 5 then Button.a [Button.OnClick (fun _ -> dispatch (UpdateExtraElement extraElementRole))][str "Change"] else str "")
+                    ]
+                ]
+            ]
     let dangerZone =
         let deleteMsg =
             if model.AdminViewUser.IsNone || user <> model.AdminViewUser.Value
             then (fun _ ->
                 dispatch (UpdateExtraElement
-                    (VerifyLoginModal (DeleteAccountRequest model.LoginModel,"Delete your account"))
+                    (VerifyLoginModal (DeleteAccountRequest model.LoginModel,str "Delete your account"))
                 )
             )
             else ( fun _ ->
                 dispatch (UpdateExtraElement
-                    (VerifyLoginModal (AdminDeleteAccountRequest (model.LoginModel, model.AdminViewUser.Value), "You are about to delete a user account. Please verify your login."))
+                    (VerifyLoginModal (AdminDeleteAccountRequest (model.LoginModel, model.AdminViewUser.Value), str "You are about to delete a user account. Please verify your login."))
                 )
             )
         Columns.columns [
