@@ -8,6 +8,7 @@ type ActiveUserRoles =
 | UserManager
 | User
 | Guest
+| All
 
 type User = {
     Username : string
@@ -38,6 +39,10 @@ type DotnetRegisterResults =
 | RegisterSuccess of string
 | RegisterFail of string
 
+type DotnetDeleteAccountResults =
+| DeleteSuccess of string
+| DeleteFail of string
+
 module Route =
     /// Defines how routes are generated on server and mapped from client
     let builder typeName methodName =
@@ -56,13 +61,16 @@ type IDotnetApi = {
 }
 
 type IDotnetSecureApi = {
+    getUserCounter : unit -> Async<Counter>
     dotnetGetUser : unit -> Async<User>
     dotnetUserLogOut : unit -> Async<DotnetLogOutResults>
-    getUserCounter : unit -> Async<Counter>
+    dotnetDeleteUserAccount : LoginModel -> Async<DotnetDeleteAccountResults>
 }
 
 type IAdminSecureApi = {
     dotnetGetAllUsers : unit -> Async<User []>
+    adminRegisterUser : RegisterModel*ActiveUserRoles -> Async<DotnetRegisterResults>
+    adminDeleteAccount : LoginModel * User -> Async<DotnetDeleteAccountResults>
 }
 
 module AuxFunctions =

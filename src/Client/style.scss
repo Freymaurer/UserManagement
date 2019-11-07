@@ -35,3 +35,15 @@ $family-primary: 'Open Sans';
     border-bottom: 2px solid hsl(204, 86%, 53%);
     color: hsl(204, 86%, 53%);
 }
+
+.dropdownFilter:hover {
+    border-bottom: 1px solid aquamarine;
+    color: aquamarine;
+    margin-left: 2%;
+    margin-right: 2%;
+    width: auto;
+}
+
+.emptyOnHover:hover {
+
+}

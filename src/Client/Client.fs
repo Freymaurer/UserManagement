@@ -10,18 +10,31 @@ open Fulma
 open Client.Types
 open Client.State
 open Client.View
+open Fable
+open Fable.React
+open Fable.React.Props
+
+
+let extraEle model dispatch =
+    match model.ExtraReactElement with
+    |EmptyElement -> emptyStr
+    |RegisterModal -> registerModal model dispatch
+    |AdminRegisterModal -> adminRegisterModal model dispatch
+    |Message x -> messageContainer x (fun _ -> dispatch (UpdateExtraElement EmptyElement))
+    |VerifyLoginModal (x,str) -> verifyLoginModal model str dispatch x
 
 let view (model : Model) (dispatch : Msg -> unit) =
     div [ ] [
         menuCard model dispatch
         Navbar.navbar [ Navbar.Color IsPrimary ]
             (if model.Authenticated = true then (loggedInNavbar model dispatch) else (loginNavbar model dispatch ))
+        extraEle model dispatch
         // Menu rendering
         (
             match model.MainReactElement with
             | Counter -> counter model dispatch
-            | UserAccount -> userAccountElement model dispatch
-            | UserList -> userListElement model dispatch
+            | UserAccount user -> userAccountElement model dispatch user
+            | UserList -> displayAllUsersElement model dispatch
             | _ -> constructionLabel model dispatch
         )
         Footer.footer [ ]

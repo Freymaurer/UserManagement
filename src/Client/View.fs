@@ -23,7 +23,7 @@ let onEnter msg dispatch =
 let emptyStr = str ""
 
 let messageContainer (content:string) msg =
-    Container.container [ ] [
+    Container.container [ Container.Props [Style [MarginTop "2%"]]] [
         Columns.columns [ Columns.IsCentered ][
             Column.column [ Column.Width (Screen.All,Column.IsHalf) ][
                 Content.content [
@@ -63,15 +63,13 @@ let inputRegisterBox inputElement header valueOrDefault msg =
 let registerModal (model : Model) (dispatch : Msg -> unit) =
     Modal.modal [
         Modal.IsActive true
-        Modal.Props [
-            onEnter (DotnetRegisterRequest model.RegisterModel) dispatch
-        ]
-        ] [
+        Modal.Props [onEnter (DotnetRegisterRequest model.RegisterModel) dispatch]
+    ] [
         Modal.background [ Props [OnClick (fun _ -> dispatch (UpdateExtraElement EmptyElement) )] ] [ ]
         Modal.Card.card [
             Modifiers [ Modifier.BackgroundColor IsWhite ]
             Props [ Style [ Height "80%";BorderRadius "15px" ] ]
-            ] [
+        ] [
             Modal.Card.head [
                 Modifiers [Modifier.BackgroundColor IsWhite]
                 Props [ Style [ BorderBottom "0px"] ]
@@ -80,8 +78,7 @@ let registerModal (model : Model) (dispatch : Msg -> unit) =
                     str "Create your account"
                 ]
             ]
-            Modal.Card.body
-                [ ] [
+            Modal.Card.body  [ ] [
                 inputRegisterBox
                     Input.text
                     "Username"
@@ -106,20 +103,148 @@ let registerModal (model : Model) (dispatch : Msg -> unit) =
                         let newModel = {model.RegisterModel with Password = e.Value}
                         dispatch (UpdateRegisterModel newModel)
                         )
-                Columns.columns [ Columns.Props [ Style [ PaddingTop "2rem" ] ] ][
-                    Column.column [Column.Offset (Screen.All,Column.IsThreeFifths)] [
+                Columns.columns [ Columns.Props [ Style [ PaddingTop "2rem" ] ] ] [
+                    Column.column [Column.Offset (Screen.All,Column.IsThreeQuarters)] [
                         Button.button [
                             Button.Color IsInfo
                             (if model.RegisterModel.Username = "" || model.RegisterModel.Password = "" || model.RegisterModel.Email = "" then Button.Disabled true else Button.Disabled false )
                             Button.OnClick (fun _ -> dispatch (DotnetRegisterRequest model.RegisterModel))
-                            ][
+                        ][
                             str "Register"
                         ]
                     ]
                 ]
+            ]
+        ] 
+    ]
+
+let verifyLoginModal (model : Model) infoText (dispatch : Msg -> unit) msgInput =
+    let msg =
+        match msgInput with
+        | DeleteAccountRequest _ ->DeleteAccountRequest model.LoginModel
+        | AdminDeleteAccountRequest _ -> AdminDeleteAccountRequest (model.LoginModel,model.AdminViewUser.Value)
+        | _ -> UpdateExtraElement (Message "There went something wrong! This should never happen")
+    Modal.modal [
+        Modal.IsActive true
+        Modal.Props [onEnter msg dispatch]
+    ] [
+        Modal.background [ Props [OnClick (fun _ -> dispatch (UpdateExtraElement EmptyElement) )] ] [ ]
+        Modal.Card.card [
+            Modifiers [ Modifier.BackgroundColor IsWhite ]
+            Props [ Style [ Height "80%";BorderRadius "15px" ] ]
+        ] [
+            Modal.Card.head [
+                Modifiers [Modifier.BackgroundColor IsWhite]
+                Props [ Style [ BorderBottom "0px"] ]
+            ] [
+                Modal.Card.title [ Props [ Style [ PaddingTop "2rem" ] ] ] [
+                    str "Verify your Login"
                 ]
-            ] 
+            ]
+            Modal.Card.body  [ ] [
+                text [] [str infoText]
+                inputRegisterBox
+                    Input.text
+                    "Username"
+                    model.LoginModel.Username
+                    (fun e -> dispatch (UpdateLoginUsername e.Value))
+                inputRegisterBox
+                    Input.password
+                    "Password"
+                    model.LoginModel.Password
+                    (fun e -> dispatch (UpdateLoginUserPw e.Value))
+                Columns.columns [ Columns.Props [ Style [ PaddingTop "2rem" ] ] ] [
+                    Column.column [Column.Offset (Screen.All,Column.IsHalf)] [
+                        Button.button [
+                            Button.Color IsDanger
+                            (if model.LoginModel.Username = "" || model.LoginModel.Password = "" then Button.Disabled true else Button.Disabled false )
+                            Button.OnClick (fun _ -> dispatch msg)
+                        ][
+                            str "Verify your login"
+                        ]
+                    ]
+                ]
+            ]
+        ] 
+    ]
+
+let adminRegisterModal model dispatch =
+    let adminView =
+        Column.column [][
+            Dropdown.dropdown [ Dropdown.IsHoverable;Dropdown.IsUp] [
+                div [ ] [
+                    Button.button [ Button.Modifiers [Modifier.BackgroundColor IsWhiteTer] ] [
+                        span [ ] [ str (if model.AdminAssignRole = Guest then "Role" else string model.AdminAssignRole) ]
+                        Icon.icon [ Icon.Size IsSmall ] [ Fa.i [ Fa.Solid.AngleDown ] [ ] ]
+                    ]
+                ]
+                Dropdown.menu [ ] [
+                    Dropdown.content [ ] [
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (AdminSelectAssignRole ActiveUserRoles.Admin)) ] ] [ str "Admin" ]
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (AdminSelectAssignRole ActiveUserRoles.UserManager)) ] ] [ str "UserManager" ]
+                        Dropdown.divider [ ]
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (AdminSelectAssignRole ActiveUserRoles.User)) ] ] [ str "User" ]
+                    ]
+                ]
+            ]
         ]
+    Modal.modal [
+        Modal.IsActive true
+        Modal.Props [onEnter (AdminRegisterUserRequest (model.RegisterModel,model.AdminAssignRole)) dispatch]
+    ] [
+        Modal.background [ Props [OnClick (fun _ -> dispatch (UpdateExtraElement EmptyElement) )] ] [ ]
+        Modal.Card.card [
+            Modifiers [ Modifier.BackgroundColor IsWhite ]
+            Props [ Style [ Height "80%";BorderRadius "15px" ] ]
+        ] [
+            Modal.Card.head [
+                Modifiers [Modifier.BackgroundColor IsWhite]
+                Props [ Style [ BorderBottom "0px"] ]
+            ] [
+                Modal.Card.title [ Props [ Style [ PaddingTop "2rem" ] ] ] [
+                    str "Create your account"
+                ]
+            ]
+            Modal.Card.body[ ] [
+                inputRegisterBox
+                    Input.text
+                    "Username"
+                    model.RegisterModel.Username
+                    (fun e ->
+                        let newModel = {model.RegisterModel with Username = e.Value}
+                        dispatch (UpdateRegisterModel newModel)
+                        )
+                inputRegisterBox
+                    Input.email
+                    "Email"
+                    model.RegisterModel.Email
+                    (fun e ->
+                        let newModel = {model.RegisterModel with Email = e.Value}
+                        dispatch (UpdateRegisterModel newModel)
+                        )
+                inputRegisterBox
+                    Input.password
+                    "Password"
+                    model.RegisterModel.Password
+                    (fun e ->
+                        let newModel = {model.RegisterModel with Password = e.Value}
+                        dispatch (UpdateRegisterModel newModel)
+                        )
+                Columns.columns [ Columns.Props [ Style [ PaddingTop "2rem" ] ] ] [
+                    adminView
+                    Column.column [] [
+                        Button.button [
+                            Button.Color IsInfo
+                            (if model.RegisterModel.Username = "" || model.RegisterModel.Password = "" || model.RegisterModel.Email = "" then Button.Disabled true else Button.Disabled false )
+                            Button.OnClick (fun _ -> dispatch (AdminRegisterUserRequest (model.RegisterModel,model.AdminAssignRole)))
+                        ][
+                            str "Register"
+                        ]
+                    ]
+                ]
+            ]
+        ] 
+    ]
 
 let safeComponents =
     let components =
@@ -177,7 +302,7 @@ let loginNavbar (model : Model) (dispatch : Msg -> unit) = [
     Navbar.Item.div [ ] [ 
         Heading.h2 [ ] [ str "SAFE Template - Login" ]
     ]
-    Navbar.End.div [ ] [
+    Navbar.End.a [ ] [
         Navbar.Item.a [
             Navbar.Item.IsHoverable;
             Navbar.Item.HasDropdown;
@@ -299,17 +424,10 @@ let loggedInNavbar (model : Model) (dispatch : Msg -> unit) =
         ]
     ]
 
-let extraEle model dispatch =
-    match model.ExtraReactElement with
-    |EmptyElement -> emptyStr
-    |RegisterModal -> registerModal model dispatch
-    |Message x -> messageContainer x (fun _ -> dispatch (UpdateExtraElement EmptyElement))
-
 let counter model dispatch = 
       Container.container [ Container.Props [ Style [MarginTop "1rem"] ] ]
           [ Content.content [ Content.Modifiers [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered) ] ]
                 [ Heading.h3 [] [ str ("Press buttons to manipulate counter: " + show model) ] ]
-            extraEle model dispatch
             Columns.columns []
                 [ Column.column [] [ button "-" (fun _ -> dispatch Decrement) ]
                   Column.column [] [ button "+" (fun _ -> dispatch Increment) ]
@@ -352,16 +470,13 @@ let menu (model:Model) dispatch =
         ] [
             Menu.label [ ] [ str "User Account" ]
             Menu.list [ ]
-              [ menuItem "Account Information" (fun _ -> dispatch (ChangeMainReactElement UserAccount)) ]
+              [ menuItem "Account Information" (fun _ -> dispatch (ChangeMainReactElement (UserAccount model.User.Value))) ]
             Menu.label [ Modifiers [Modifier.IsHidden (hideElementsBy 5)] ] [ str "Account Management" ]
-            Menu.list [ Modifiers [Modifier.IsHidden (hideElementsBy 5)] ]
-              [ menuItem "User List"  (fun _ ->
-                    dispatch AdminGetAllUsersRequest
-                    dispatch (ChangeMainReactElement UserList))
-                subMenu "Role Rights"
-                      [ menuItem "Members" (fun _ -> dispatch (ChangeMainReactElement (RoleRights User)))
-                        menuItem "User Manager" (fun _ -> dispatch (ChangeMainReactElement (RoleRights UserManager)))
-                        menuItem "Admin" (fun _ -> dispatch (ChangeMainReactElement (RoleRights Admin))) ] ] 
+            Menu.list [ Modifiers [Modifier.IsHidden (hideElementsBy 5)] ] [
+                menuItem "User List"  (fun _ ->
+                dispatch AdminGetAllUsersRequest
+                dispatch (ChangeMainReactElement UserList))
+            ]
             Menu.label [ Modifiers [Modifier.IsHidden (hideElementsBy 10)] ] [str "Debug"]
             Menu.list [Modifiers [Modifier.IsHidden (hideElementsBy 10)]]
                 [menuItem "Test Counter" (fun _ -> dispatch (ChangeMainReactElement Counter))]
@@ -433,7 +548,7 @@ let constructionLabel model dispatch =
 
 /// View for User Account Information
 
-let informationColumn headerStr informationStr =
+let userAccountinformationColumn headerStr informationStr =
     Columns.columns [][
         Column.column [][
             Heading.h5 [][str headerStr]
@@ -444,43 +559,159 @@ let informationColumn headerStr informationStr =
         ]
     ]
 
-let userAccountElement model dispatch =
+let userAccountElement model dispatch (user:User) =
     let elementFallbackIfEmpty =
         if model.User.IsNone || model.Authenticated = false
         then [ str "Access Denied" ]
-        else [ informationColumn "Name" model.User.Value.Username; informationColumn "E-Mail" model.User.Value.Email; informationColumn "Role" (string model.User.Value.Role) ]
-    div [Style [MarginTop "5%"; MarginBottom "5%"]][
-        Column.column [ Column.Width (Screen.All,Column.IsHalf);Column.Offset (Screen.All,Column.IsOneQuarter) ][
-            Box.box' [
-                Props[
-                    Style[
-                        Padding "5% 5% 5% 5%"
-                    ]
+        else [ userAccountinformationColumn "Name" user.Username; userAccountinformationColumn "E-Mail"user.Email; userAccountinformationColumn "Role" (string user.Role) ]
+    let dangerZone =
+        let deleteMsg =
+            if model.AdminViewUser.IsNone || user <> model.AdminViewUser.Value
+            then (fun _ ->
+                dispatch (UpdateExtraElement
+                    (VerifyLoginModal (DeleteAccountRequest model.LoginModel,"Delete your account"))
+                )
+            )
+            else ( fun _ ->
+                dispatch (UpdateExtraElement
+                    (VerifyLoginModal (AdminDeleteAccountRequest (model.LoginModel, model.AdminViewUser.Value), "You are about to delete a user account. Please verify your login."))
+                )
+            )
+        Columns.columns [
+            Columns.Props [
+                Style [
+                    Border "1.5px solid #ff4d4d"
+                    BorderRadius "3px"
+                    MarginTop "10px"
+        ]]] [
+            Column.column [][
+                Heading.h6 [][str "Delete this user account"]
+                Heading.h6 [Heading.IsSubtitle] [str "Once you delete your account, there is no going back. Please be certain"]
+            ]
+            Column.column [Column.Width (Screen.All,Column.IsOneFifth);Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Right)]][
+                Button.button [Button.Color IsDanger;Button.OnClick deleteMsg][
+                    str "Delete"
                 ]
             ]
-                elementFallbackIfEmpty
+        ]
+    let backButtonRequest =
+        if model.AdminViewUser.IsNone || user <> model.AdminViewUser.Value
+        then
+            str ""
+        else
+            Button.button [
+                Button.Props [
+                    Style [
+                        Position PositionOptions.Fixed
+                        Bottom "50%"
+                        Left "5%"] ]
+                Button.OnClick (fun _ -> dispatch (ChangeMainReactElement UserList))
+            ][
+                Icon.icon [ ][
+                    span [ClassName "fas fa-arrow-left"] []
+                ]
+                span [][str " Back"]
+            ]
+    div [Style [MarginTop "5%";MarginBottom "5%"]][
+        Column.column [ Column.Width (Screen.All,Column.IsHalf);Column.Offset (Screen.All,Column.IsOneQuarter) ][
+            Box.box' [Props[Style[Padding "5% 5% 5% 5%"]]]
+                (elementFallbackIfEmpty@[dangerZone])
+            backButtonRequest
         ]
     ]
 
 /// View for User List Information
 
-let userDisplay (user:User) =
-    div [][
-        str user.Username
-        str user.Email
-        str (string user.Role)
+let displayUser (user:User) dispatch =
+    [|
+        tr [][
+            td [][str user.Username]
+            td [][str user.Email]
+            td [][str (string user.Role)]
+            span [Style [Padding "auto";MarginLeft "1.5rem"]][
+                Button.span [
+                    Button.Size IsSmall
+                    Button.OnClick (fun _ -> dispatch (AdminSelectUser user))
+                ] [
+                    str "Edit"
+                ]
+            ]
+        ]
+    |]
+
+let dropdownNavbarButtonSize (nameStr:string) dispatchElement =
+    Navbar.Item.a
+        [ Navbar.Item.Props [ Props.OnClick dispatchElement ];Navbar.Item.CustomClass "dropdownFilter" ]
+        [ str nameStr]
+
+let displayAllUsersNavbar model dispatch =
+    Navbar.navbar [ Navbar.Props [ Style [
+        MarginTop "0.5%";BorderBottom "1px solid lightgrey"; MarginBottom "0.5%";
+        JustifyContent "center"; ZIndex "5"
+    ]]] [
+        Navbar.Item.a [ Navbar.Item.Props [Style [Width "25%"]]][
+            Input.search [
+                Input.Size Size.IsSmall 
+                Input.Placeholder "...search"
+                Input.Props [Style [Height "100%"]]
+                Input.OnChange (fun e -> dispatch (SortAllUserList e.Value))
+            ]
+        ]
+        Navbar.navbar [Navbar.Props [Style [Width "25%";]]][
+            Navbar.Item.a [
+                Navbar.Item.Props [Style [MarginLeft "auto";Padding "3px"]]
+                Navbar.Item.HasDropdown; Navbar.Item.IsHoverable;
+            ] [
+                Navbar.Link.a [] [ str (if model.AdminUserListRoleFilter = All then "Role-Filter" else string model.AdminUserListRoleFilter) ]
+                Navbar.Dropdown.div [ ] [
+                    dropdownNavbarButtonSize "All" (fun _ -> dispatch (FilterAllUserList All))
+                    Dropdown.divider []
+                    dropdownNavbarButtonSize "User" (fun _ -> dispatch (FilterAllUserList User))
+                    dropdownNavbarButtonSize "UserManager" (fun _ -> dispatch (FilterAllUserList UserManager))
+                    dropdownNavbarButtonSize "Admin" (fun _ -> dispatch (FilterAllUserList Admin))
+                    dropdownNavbarButtonSize "Developer" (fun _ -> dispatch (FilterAllUserList Developer))
+                ]
+            ]
+        ]
+        Navbar.Item.a [][
+            div [
+                OnClick (
+                    fun _ ->
+                        dispatch ClearRegisterLogin
+                        dispatch (UpdateExtraElement AdminRegisterModal)
+                )
+            ] [
+                Fa.span [
+                    Fa.Solid.PlusCircle
+                    Fa.FixedWidth ] [ ]
+                str " Add User"
+            ]
+        ]
     ]
 
-let userListElement (model:Model) dispatch =
-    div [Style [MarginTop "5%"; MarginBottom "5%"]][
-        Column.column [ Column.Width (Screen.All,Column.IsHalf);Column.Offset (Screen.All,Column.IsOneQuarter) ][
-            Box.box' [
-                Props[
-                    Style[
-                        Padding "5% 5% 5% 5%"
+let displayAllUsersElement (model:Model) dispatch =
+    div [Style [MarginBottom "5%"]][
+        displayAllUsersNavbar model dispatch
+        Column.column [
+            Column.Width (Screen.All,Column.IsHalf);Column.Offset (Screen.All,Column.IsOneQuarter)
+        ][
+            Table.table [
+                Table.IsFullWidth
+            ] [
+                thead [][
+                    tr [][
+                        th [][str "Username"]
+                        th [][str "E-Mail"]
+                        th [][str "Role"]
+                        span [][]
                     ]
                 ]
-            ] (model.AdminOnlyUserList |> Seq.map (fun userVal -> userDisplay userVal) |> List.ofSeq)
-            //
+                tbody []
+                    (model.AdminUserList
+                    |> Array.filter (fun x -> if model.AdminUserListRoleFilter = All then x = x else x.Role = model.AdminUserListRoleFilter)
+                    |> (Array.collect (fun userVal -> displayUser userVal dispatch)
+                        >> List.ofArray)
+                    )
+            ]
         ]
     ]

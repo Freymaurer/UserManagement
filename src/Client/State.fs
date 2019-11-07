@@ -27,7 +27,10 @@ let init () : Model * Cmd<Msg> =
         ExtraReactElement = EmptyElement
         MainReactElement = Counter
         ShowMenuBool = false
-        AdminOnlyUserList = [||]
+        AdminUserList = [||]
+        AdminUserListRoleFilter = All
+        AdminViewUser = None
+        AdminAssignRole = Guest
     }
     let loadCountCmd =
         Cmd.OfAsync.perform
@@ -35,7 +38,10 @@ let init () : Model * Cmd<Msg> =
                 ()
                 InitialCountLoaded
     let logInCmd =
-        Cmd.ofMsg DotnetGetUserRequest
+        Cmd.OfAsync.perform
+            Server.dotnetSecureApi.dotnetGetUser
+            ()
+            InitialUserLoaded
     let aggregrateCmds =
         Cmd.batch [loadCountCmd; logInCmd]
     initialModel, aggregrateCmds
@@ -55,7 +61,18 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
     | _, InitialCountLoaded initialCount ->
         let nextModel = { currentModel with Counter = Some initialCount; Loading = false }
         nextModel, Cmd.none
+    | _, InitialUserLoaded initialUser ->
+        let nextModel = { currentModel with User = Some initialUser; Loading = false;Authenticated = true }
+        nextModel, Cmd.none
         /// Menu Management Functions
+    | _, ClearRegisterLogin ->
+        let nextModel = {
+            currentModel with
+                LoginModel = {Username = ""; Password = ""}
+                RegisterModel = {Username = "";Password = "";Email = ""}
+                AdminAssignRole = Guest
+        }
+        nextModel, Cmd.none
     | _, ToggleMenu ->
         let nextModel = {
             currentModel with
@@ -69,6 +86,38 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ShowMenuBool = false
         }
         nextModel, Cmd.none
+    | _, SortAllUserList (searchString) ->
+        let sortedArr =
+            currentModel.AdminUserList
+            |> Array.sortByDescending (
+                fun x ->
+                    let completeInfo = x.Username + " " + x.Email
+                    Client.AuxFunctions.rankCompareStringsBySearchString searchString completeInfo
+            )
+        let nextModel = {
+            currentModel with
+                AdminUserList = sortedArr
+        }
+        nextModel,Cmd.none
+    | _, FilterAllUserList (userRole) ->
+        let nextModel = {
+            currentModel with
+                AdminUserListRoleFilter = userRole
+        }
+        nextModel,Cmd.none
+    | _, AdminSelectUser (user) ->
+        let nextModel = {
+            currentModel with
+                AdminViewUser = Some user
+                MainReactElement = UserAccount user
+        }
+        nextModel,Cmd.none
+    | _, AdminSelectAssignRole (role) ->
+        let nextModel = {
+            currentModel with
+                AdminAssignRole = role
+        }
+        nextModel,Cmd.none
         /// functions to manage input fields for user log in
     | _ , UpdateLoginUsername (name:string) ->
         let nextModel = {
@@ -96,7 +145,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         nextModel,Cmd.none
         ///functions to handle user registration
     | _, DotnetRegisterRequest (registermodel) ->
-        let nextModel = { currentModel with ExtraReactElement = EmptyElement}
+        let nextModel = { currentModel with ExtraReactElement = EmptyElement }
         let cmd =
             Cmd.OfAsync.either
                 Server.dotnetApi.dotnetRegister
@@ -153,11 +202,13 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         let (message,cmd) =
             match value with
             | LoginSuccess msg -> msg, Cmd.ofMsg DotnetGetUserRequest
-            | LoginFail msg -> msg, Cmd.ofMsg (UpdateExtraElement (Message "Log In Failed"))
+            | LoginFail msg -> msg, Cmd.ofMsg (UpdateExtraElement (Message msg))
         let nextModel = {
             currentModel with
                 ErrorMsg = Some message
                 Loading = false
+                MainReactElement = Counter
+                LoginModel = {Username = ""; Password = ""}
         }
         nextModel, cmd
         /// functions to access already logged in user information
@@ -240,6 +291,35 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ErrorMsg = Some e.Message
         }
         nextModel, Cmd.none
+    | _, DeleteAccountRequest (loginModel) ->
+        let cmd =
+            Cmd.OfAsync.either
+                Server.dotnetSecureApi.dotnetDeleteUserAccount
+                loginModel
+                (Ok >> DeleteAccountResponse)
+                (Error >> DeleteAccountResponse)
+        let nextModel = {
+            currentModel with
+                Loading = true
+        }
+        nextModel, cmd
+    | _, DeleteAccountResponse (Ok value) ->
+        let initModel,initCmd = init()
+        let nextModel,cmd =
+            match value with
+            | DeleteSuccess str ->
+                {initModel with ExtraReactElement = Message str}, initCmd
+            | DeleteFail str ->
+                Browser.Dom.window.alert ("You tried deleting the account and it failed. For security reasons you were logged out. " + str)
+                currentModel, Cmd.ofMsg DotnetLogOutRequest
+        nextModel, cmd
+    | _, DeleteAccountResponse (Error e) ->
+        let nextModel = {
+            currentModel with
+                ExtraReactElement = Message e.Message
+                LoginModel = {Username = ""; Password = ""}
+        }
+        nextModel,Cmd.none
     | _, AdminGetAllUsersRequest ->
         let nextModel = {
             currentModel with
@@ -256,7 +336,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         let nextModel = {
             currentModel with
                 Loading = false
-                AdminOnlyUserList = value
+                AdminUserList = value
         }
         nextModel, Cmd.none
     | _, AdminGetAllUsersResponse (Error e) ->
@@ -264,8 +344,76 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
             currentModel with
                 Loading = false
                 ErrorMsg = Some e.Message
+                ExtraReactElement = Message e.Message
         }
         nextModel, Cmd.none
+    | _, AdminRegisterUserRequest (registermodel,role) ->
+        let cmd =
+            Cmd.OfAsync.either
+                Server.dotnetAdminSecureApi.adminRegisterUser
+                    (registermodel,role)
+                    (Ok >> AdminRegisterUserResponse)
+                    (Error >> AdminRegisterUserResponse)
+        let nextModel = {
+            currentModel with
+                Loading = true
+                ExtraReactElement = EmptyElement
+        }
+        nextModel, cmd
+    | _, AdminRegisterUserResponse (Ok value) ->
+        let nextModel,cmd =
+            match value with
+            | RegisterFail x ->
+                { currentModel with
+                    Loading = false
+                    ExtraReactElement = Message x
+                    RegisterModel = {currentModel.RegisterModel with Password = ""}
+                } , Cmd.none
+            | RegisterSuccess x ->
+                { currentModel with
+                    Loading = false
+                    ExtraReactElement = Message x
+                }, Cmd.ofMsg AdminGetAllUsersRequest
+        nextModel, cmd
+    | _, AdminRegisterUserResponse (Error e) ->
+        let nextModel = {
+            currentModel with
+                Loading = false
+                ErrorMsg = Some e.Message
+                ExtraReactElement = Message e.Message
+                RegisterModel = {currentModel.RegisterModel with Password = ""}
+        }
+        nextModel, Cmd.none
+    | _, AdminDeleteAccountRequest (loginModel,user) ->
+        let cmd =
+            Cmd.OfAsync.either
+                Server.dotnetAdminSecureApi.adminDeleteAccount
+                (loginModel,user)
+                (Ok >> AdminDeleteAccountResponse)
+                (Error >> AdminDeleteAccountResponse)
+        let nextModel = {
+            currentModel with
+                Loading = true
+                LoginModel = {Username = "";Password = ""}
+                ExtraReactElement = EmptyElement
+        }
+        nextModel,cmd
+    | _, AdminDeleteAccountResponse (Ok value) ->
+        let nextModel,cmd =
+            match value with
+            | DeleteSuccess str ->
+                {currentModel with ExtraReactElement = Message str; MainReactElement = UserList}, Cmd.ofMsg AdminGetAllUsersRequest
+            | DeleteFail str ->
+                Browser.Dom.window.alert ("You tried deleting the account and it failed. For security reasons you were logged out. " + str)
+                currentModel, Cmd.ofMsg DotnetLogOutRequest
+        nextModel, cmd
+    | _, AdminDeleteAccountResponse (Error e) ->
+        let nextModel = {
+            currentModel with
+                ExtraReactElement = Message e.Message
+                LoginModel = {Username = ""; Password = ""}
+        }
+        nextModel,Cmd.none
     | _, Debug (message) ->
         { currentModel with ErrorMsg = Some message}, Cmd.none
     | _ -> currentModel, Cmd.none

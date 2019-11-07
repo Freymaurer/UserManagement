@@ -14,23 +14,26 @@ open Fable.FontAwesome
 
 let [<Literal>] ENTER_KEY = 13.
 
-type ExtraReactElement =
-|EmptyElement
-|RegisterModal
-|Message of string
 
 type MainReactElement =
 | Counter
-| UserAccount
+| UserAccount of User
 | UserList
 | RoleRights of ActiveUserRoles
 | UserSettings of User
+
+type ExtraReactElement =
+|EmptyElement
+|RegisterModal
+|VerifyLoginModal of Msg * String
+|AdminRegisterModal
+|Message of string
 
 // The model holds data that you want to keep track of while the application is running
 // in this case, we are keeping track of a counter
 // we mark it as optional, because initially it will not be available from the client
 // the initial value will be requested from server
-type Model = {
+and Model = {
     Counter: Counter option
     ErrorMsg : string option
     LoginModel : LoginModel
@@ -41,17 +44,26 @@ type Model = {
     ExtraReactElement : ExtraReactElement
     MainReactElement : MainReactElement
     ShowMenuBool : bool
-    AdminOnlyUserList : User []
+    AdminUserList : User []
+    AdminUserListRoleFilter : ActiveUserRoles
+    AdminViewUser : User option
+    AdminAssignRole : ActiveUserRoles
     }
 
 // The Msg type defines what events/actions can occur while the application is running
 // the state of the application changes *only* in reaction to these events
-type Msg =
+and Msg =
+    | ClearRegisterLogin
     | ToggleMenu
     | ChangeMainReactElement of MainReactElement
+    | SortAllUserList of string
+    | FilterAllUserList of ActiveUserRoles
+    | AdminSelectUser of User
+    | AdminSelectAssignRole of ActiveUserRoles
     | Increment
     | Decrement
     | InitialCountLoaded of Counter
+    | InitialUserLoaded of User
     | UpdateLoginUsername of string
     | UpdateLoginUserPw of string
     | UpdateRegisterModel of RegisterModel
@@ -69,13 +81,17 @@ type Msg =
     | DotnetLogOutResponse of Result<DotnetLogOutResults,exn>
     | GetUserCounterRequest
     | GetUserCounterResponse of Result<Counter,exn>
+    | DeleteAccountRequest of LoginModel
+    | DeleteAccountResponse of Result<DotnetDeleteAccountResults,exn>
     | AdminGetAllUsersRequest
     | AdminGetAllUsersResponse of Result<User [],exn>
+    | AdminRegisterUserRequest of RegisterModel * ActiveUserRoles
+    | AdminRegisterUserResponse of Result<DotnetRegisterResults,exn>
+    | AdminDeleteAccountRequest of LoginModel * User
+    | AdminDeleteAccountResponse of Result<DotnetDeleteAccountResults,exn>
 
 
 module ServerPath =
-    open System
-    open Fable.Core
 
     /// when publishing to IIS, your application most likely runs inside a virtual path (i.e. localhost/SafeApp)
     /// every request made to the server will have to account for this virtual path
@@ -99,7 +115,6 @@ module ServerPath =
 
 module Server =
 
-    open Shared
     open Fable.Remoting.Client
 
     // normalize routes so that they work with IIS virtual path in production

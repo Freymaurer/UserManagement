@@ -35,14 +35,57 @@ module DotnetModule =
         |> (fun x -> x.ToString())
 
     let dotnetLogin (user:LoginModel) (context: HttpContext) =
-        task {
-            let signInManager = context.GetService<SignInManager<IdentityUser>>()
-            let! result = signInManager.PasswordSignInAsync(user.Username, user.Password, true, false)
-            match result.Succeeded with
-            | true ->
-               return LoginSuccess (result.ToString())
-            | false -> return LoginFail (result.ToString())
-        } |> fun x -> x.Result
+        match user.Username,user.Password with
+        | "","" -> LoginFail "Password and Username are empty"
+        | "",_ -> LoginFail "Username is empty"
+        | _,"" -> LoginFail "Password is empty"
+        | _,_ ->
+            task {
+                let signInManager = context.GetService<SignInManager<IdentityUser>>()
+                let! result = signInManager.PasswordSignInAsync(user.Username, user.Password, true, false)
+                match result.Succeeded with
+                | true ->
+                   return LoginSuccess (result.ToString())
+                | false -> return LoginFail (result.ToString())
+            } |> fun x -> x.Result
+
+    let dotnetDeleteAccount (loginModel:LoginModel) (context: HttpContext) =
+        if context.User.HasClaim (ClaimTypes.Name,loginModel.Username) 
+        then
+            task {
+                let signInManager = context.GetService<SignInManager<IdentityUser>>()
+                let! result = signInManager.PasswordSignInAsync(loginModel.Username, loginModel.Password, true, false)
+                match result.Succeeded with
+                | true ->
+                    let userManager = context.GetService<UserManager<IdentityUser>>()
+                    let! user = userManager.GetUserAsync context.User
+                    let! deleteResult = userManager.DeleteAsync user
+                    match deleteResult.Succeeded with
+                    | true -> return DeleteSuccess (deleteResult.ToString())
+                    | false -> return DeleteFail (deleteResult.Errors |> Seq.map (fun  x-> x.Code + " - " + x.Description) |> String.concat ". ")
+                | false -> return DeleteFail "Error 401 Access Denied"
+            } |> fun x -> x.Result
+        else DeleteFail "Error 401 Access Denied"
+
+    let adminDeleteAccount (loginModel:LoginModel) (userInput:User) (context: HttpContext) =
+        if context.User.HasClaim (ClaimTypes.Role,"Developer") || context.User.HasClaim (ClaimTypes.Role,"Admin") || context.User.HasClaim (ClaimTypes.Role,"Usermanager")
+        then
+            task {
+                let signInManager = context.GetService<SignInManager<IdentityUser>>()
+                let! result = signInManager.PasswordSignInAsync(loginModel.Username, loginModel.Password, true, false)
+                match result.Succeeded with
+                | true ->
+                    let userManager = context.GetService<UserManager<IdentityUser>>()
+                    let! findByName = userManager.FindByNameAsync(userInput.Username)
+                    let! findByEmail = userManager.FindByEmailAsync(userInput.Email)
+                    let user = if findByName = findByEmail then findByName else failwith "Username and Email do not correlate"
+                    let! deleteResult = userManager.DeleteAsync user
+                    match deleteResult.Succeeded with
+                    | true -> return DeleteSuccess (deleteResult.ToString())
+                    | false -> return DeleteFail (deleteResult.Errors |> Seq.map (fun  x-> x.Code + " - " + x.Description) |> String.concat ". ")
+                | false -> return DeleteFail "Error 401 Access Denied"
+            } |> fun x -> x.Result
+        else DeleteFail "Error 401 Access Denied"
 
     let dotnetGetUser (context: HttpContext) =
         task {
@@ -95,9 +138,25 @@ module DotnetModule =
                            return RegisterSuccess "Registration Successful"
         } |> fun x -> x.Result
 
+    let adminUserRegistration (registerModel:RegisterModel) (role:ActiveUserRoles) (context: HttpContext) =
+        if role = Developer || role = Guest
+        then RegisterFail "Error 401 Access Denied"
+        else
+            task {
+                let  user        = IdentityUser(UserName = registerModel.Username, Email = registerModel.Email)
+                let  userManager = context.GetService<UserManager<IdentityUser>>()
+                let! result      = userManager.CreateAsync(user, registerModel.Password)
+                match result.Succeeded with
+                | false -> return (RegisterFail (showErrors result.Errors))
+                | true  ->
+                    let! addingClaims = userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, string role))
+                    match addingClaims.Succeeded with
+                    | false -> return (RegisterFail (showErrors result.Errors))
+                    | true  -> return RegisterSuccess "Registration Successful"
+            } |> fun x -> x.Result
+
 let nice() =
     { Value = 69 }
-
 
 let dotnetApi (context: HttpContext) = {
     dotnetLogin = fun (loginModel) -> async { return (DotnetModule.dotnetLogin loginModel context) }
@@ -105,9 +164,10 @@ let dotnetApi (context: HttpContext) = {
 }
 
 let dotnetSecureApi (context: HttpContext) = {
+    getUserCounter = fun () -> async { return nice() }
     dotnetGetUser = fun () -> async { return (DotnetModule.dotnetGetUser context)}
     dotnetUserLogOut = fun () -> async { return (DotnetModule.dotnetUserLogOut context) }
-    getUserCounter = fun () -> async { return nice() }
+    dotnetDeleteUserAccount = fun loginModel -> async {return (DotnetModule.dotnetDeleteAccount loginModel context)}
 }
 
 let counterApi = {
@@ -116,6 +176,8 @@ let counterApi = {
 
 let adminSecureApi (context: HttpContext) = {
     dotnetGetAllUsers = fun () -> async { return DotnetModule.dotnetGetAllUsers context}
+    adminRegisterUser = fun (registerModel,userRole) -> async { return DotnetModule.adminUserRegistration registerModel userRole context}
+    adminDeleteAccount = fun (loginModel,user) -> async { return DotnetModule.adminDeleteAccount loginModel user context }
 }
 
 open Microsoft.AspNetCore.Builder
@@ -239,7 +301,7 @@ let webApp =
         requiresAuthentication (redirectTo false "/")
 
     let mustBeDeveloper : HttpHandler =
-        authorizeUser (fun u -> u.HasClaim (ClaimTypes.Name, "Kevin") (*|| u.HasClaim (ClaimTypes.Role, "Developer")*)) (setStatusCode 401 >=> text "Access Denied")
+        authorizeUser (fun u -> u.HasClaim (ClaimTypes.Name, "Kevin") || u.HasClaim (ClaimTypes.Role, "Developer")) (setStatusCode 401 >=> text "Access Denied")
 
     router {
         not_found_handler (setStatusCode 404 >=> text "Not Found")
