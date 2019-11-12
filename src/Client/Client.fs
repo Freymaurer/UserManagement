@@ -40,6 +40,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
             | UserList -> displayAllUsersElement model dispatch
             | _ -> constructionLabel model dispatch
         )
+        Button.button [Button.OnClick (fun _ -> dispatch GetGoogleLoginRequest)][str "Get Claims"]
         Footer.footer [ ]
               [ Content.content [ Content.Modifiers [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered) ] ]
                   [ safeComponents ] ] ]

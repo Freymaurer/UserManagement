@@ -62,6 +62,10 @@ open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Authentication
 open FSharp.Control.Tasks.V2.ContextInsensitive
+open System.Net.Http
+open System.Net.Http.Headers
+open System.Text.Json
+open System.Threading.Tasks
 
 //let googleAuth = challengeG "Google" "/api/IDotnetSecureApi/dotnetGetUser"
 
@@ -76,13 +80,28 @@ let googleAuth =
             }
     challenge "Google" "http://localhost:8080/"
 
+let gitHubAuth =
+    let challenge (scheme : string) (redirectUri : string) : HttpHandler =
+        fun (next : HttpFunc) (ctx : HttpContext) ->
+            task {
+                do! ctx.ChallengeAsync(
+                        scheme,
+                        AuthenticationProperties(RedirectUri = redirectUri))
+                return! next ctx
+            }
+    challenge "GitHub" "http://localhost:8080/"
 
 let userHandler (ctx: HttpContext) =
     let nameClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Name)
     let emailClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Email)
-    if ctx.User.Identity.IsAuthenticated then 
-        [|nameClaim.Value;emailClaim.Value;nameClaim.Issuer|]
-        |> String.concat "; "
+    let testing =
+        ctx.User.Claims
+        |> Seq.map (fun x -> sprintf "%s ->> %s <br><br>" x.Type x.Value)
+        |> String.concat ""
+    if ctx.User.Identity.IsAuthenticated then
+        testing
+        //[|nameClaim.Value;emailClaim.Value;nameClaim.Issuer|]
+        //|> String.concat "; "
     else
         "Not logged in"
 
@@ -126,7 +145,7 @@ let webApp =
 
 
     let mustBeLoggedIn : HttpHandler =
-        requiresAuthentication (text "normal authentication failed")//(redirectTo false "/")
+        requiresAuthentication (redirectTo false "/")
 
     let mustBeUserManager : HttpHandler =
         authorizeUser (
@@ -150,7 +169,8 @@ let webApp =
         not_found_handler (setStatusCode 404 >=> text "Not Found")
         forward "/api/testing" (text "hello")
         forward "/api/google-auth" googleAuth
-        forward "/api/logout-g" (signOut "Cookies" >=> (redirectTo false "http://localhost:8080/") )
+        forward "/api/github-auth" gitHubAuth
+        forward "/api/logout-g" (signOut "Cookies")
         forward "" dotnetServiceApi
         forward "" userApi
         forward "" oAuthApi
@@ -158,8 +178,11 @@ let webApp =
         forward "" (mustBeLoggedIn >=> mustBeUserManager >=> adminSecureApi)
     }
 
-let testClientId = "84896855857-3sq30njitdkb44mme3ksvh3vj829ei57.apps.googleusercontent.com"
-let testClientSecret = "jZWx6xzNKmMjUjQT7GZc7JJV"
+let testGoogleId = "84896855857-3sq30njitdkb44mme3ksvh3vj829ei57.apps.googleusercontent.com"
+let testGoogleSecret = "jZWx6xzNKmMjUjQT7GZc7JJV"
+
+let testGithubId = "7aa4b09af402a61e6dbc"
+let testGithubSecret = "84260ae6515a87e101eb1e8a51d71bb91d980beb"
 
 ///https://github.com/giraffe-fsharp/Giraffe/blob/master/samples/IdentityApp/IdentityApp/Program.fs
 let configureServices (services : IServiceCollection) =
@@ -191,28 +214,57 @@ let configureServices (services : IServiceCollection) =
 
     services.AddAuthentication(
         fun options ->
-            ///// this kill identity log in, but is necessary for oauth login. My guess, one works via token login and one via cookie log in
+            // this kill identity log in, but is necessary for oauth login. My guess, one works via token login and one via cookie log in
             options.DefaultAuthenticateScheme <- CookieAuthenticationDefaults.AuthenticationScheme
             options.DefaultSignInScheme <- CookieAuthenticationDefaults.AuthenticationScheme
             options.DefaultChallengeScheme <- "Google"
         )
-        .AddCookie(
-            fun options ->
+        .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme,
+            fun options -> 
                 options.LogoutPath <- PathString "/api/logout-g"
             )
         .AddGoogle("Google",
             fun options ->
-                options.ClientId <- testClientId
-                options.ClientSecret <- testClientSecret
+                options.ClientId <- testGoogleId
+                options.ClientSecret <- testGoogleSecret
+        )
+        .AddOAuth("GitHub",
+            fun (options:OAuth.OAuthOptions) ->
+                options.ClientId <- testGithubId
+                options.ClientSecret <- testGithubSecret
+                options.CallbackPath <- new PathString("/signin-github") 
+ 
+                options.AuthorizationEndpoint <- "https://github.com/login/oauth/authorize"
+                options.TokenEndpoint <- "https://github.com/login/oauth/access_token"
+                options.UserInformationEndpoint <- "https://api.github.com/user"
+
+                options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name")
+                options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id")
+                options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email")
+                options.ClaimActions.MapJsonKey(ClaimTypes.Locality, "location")
+
+                let ev = options.Events
+                ev.OnCreatingTicket <-
+                    fun ctx ->
+                      let tsk = task {
+                        let req = new HttpRequestMessage(HttpMethod.Get, ctx.Options.UserInformationEndpoint)
+                        req.Headers.Accept.Add(MediaTypeWithQualityHeaderValue("application/json"))
+                        req.Headers.Authorization <- AuthenticationHeaderValue("Bearer", ctx.AccessToken)
+                        let! (response : HttpResponseMessage) = ctx.Backchannel.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ctx.HttpContext.RequestAborted)
+                        response.EnsureSuccessStatusCode () |> ignore
+                        let! cnt = response.Content.ReadAsStringAsync()
+                        let user = JsonDocument.Parse cnt |> fun x -> x.RootElement
+                        ctx.RunClaimActions user
+                      }
+                      Task.Factory.StartNew(fun () -> tsk.Result)
         )
         |> ignore
     services.AddAuthentication(
         fun options ->
-            options.DefaultAuthenticateScheme <- "Identity.Application"
-            options.DefaultSignInScheme <- "Identity.Application"
+            options.DefaultAuthenticateScheme <- IdentityConstants.ApplicationScheme
+            options.DefaultSignInScheme <- IdentityConstants.ApplicationScheme
         )
         |> ignore
-
 
     // Configure app cookie
     services.ConfigureApplicationCookie(

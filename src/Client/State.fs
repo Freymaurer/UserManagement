@@ -516,7 +516,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
     | _, GetGoogleLoginResponse (Ok value) ->
         let nextModel = {
             currentModel with
-                ExtraReactElement = Message ("Connection was stable and succeded " + value)    
+                ExtraReactElement = Message ("Connection was stable and succeded >=> " + value)    
         }
         nextModel,Cmd.none
     | _, GetGoogleLoginResponse (Error e) ->

@@ -12,10 +12,17 @@ open System.Security.Claims
 open System.Text
 
 let isGoogleUser (context: HttpContext) =
-    context.User.Claims |>
-        Seq.exists (
+    context.User.Claims
+        |> Seq.exists (
             fun claim ->
                 claim.Issuer = "Google"
+        )
+
+let isGitHubUser (context: HttpContext) =
+    context.User.Claims 
+        |> Seq.exists (
+            fun claim ->
+                claim.Issuer = "GitHub"
         )
 
 let showErrors (errors : IdentityError seq) =
@@ -172,11 +179,25 @@ let googleUserHandler (ctx: HttpContext) =
     else
         failwith "googleUserHandler returned an error. User not authenticated."
 
+let gitHubUserHandler (ctx: HttpContext) =
+    let nameClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Name)
+    let emailClaim =
+        if ctx.User.HasClaim (fun c -> c.Type = ClaimTypes.Email)
+        then ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Email) |> fun x -> x.Value
+        else "Not puplicly available. If you want to portray your Email you need to change your GitHub account settings."
+    if ctx.User.Identity.IsAuthenticated
+    then
+        {Username = nameClaim.Value; Email = emailClaim; Role = Guest}
+    else
+        failwith "googleUserHandler returned an error. User not authenticated."
+
 let dotnetGetUser (context: HttpContext) =
     
     if isGoogleUser context
     then
         googleUserHandler context
+    elif isGitHubUser context
+    then gitHubUserHandler context
     else 
         task {
             let userManager = context.GetService<UserManager<IdentityUser>>()

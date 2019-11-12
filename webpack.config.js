@@ -28,6 +28,10 @@ var CONFIG = {
             target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
             changeOrigin: true
         },
+        '/signin-github': {
+            target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
+            changeOrigin: true
+        },
         // redirect requests that start with /api/* to the server on port 8085
         '/api/*': {
             target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
