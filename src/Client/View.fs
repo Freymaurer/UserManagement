@@ -43,6 +43,19 @@ let messageContainer (content:string) msg =
         ]
     ]
 
+let constructionLabel model dispatch =
+    Column.column [ Column.Width (Screen.All,Column.IsHalf); Column.Offset (Screen.All, Column.IsOneQuarter);][
+        Box.box' [ Modifiers [Modifier.BackgroundColor Color.IsWhiteTer]; Props[Style[Color "#ff9900"]] ][
+            p [Style [TextAlign TextAlignOptions.Center;FontWeight "bold"]][str "ATTENTION YOU ENTERED A LINK THAT IS STILL UNDER CONSTRUCTION!"]
+            p [Style [TextAlign TextAlignOptions.Center;FontWeight "bold"]][str "PLEASE COME AGAIN LATER!"]
+            div [ Style [Width "100%";MarginTop "2rem"; Display DisplayOptions.Flex; JustifyContent "center" ] ][
+                Fa.span [ Fa.Solid.Wrench; Fa.Size Fa.Fa6x;Fa.Props [Style[MarginLeft "1rem";MarginRight "1rem"]]][]
+                Fa.span [ Fa.Solid.Tools; Fa.Size Fa.Fa6x;Fa.Props [Style[MarginLeft "1rem";MarginRight "1rem"]]][]
+                Fa.span [ Fa.Solid.PaintRoller; Fa.Size Fa.Fa6x;Fa.Props [Style[MarginLeft "1rem";MarginRight "1rem"]] ][]
+            ]
+        ]
+    ]
+
 let inputRegisterBox inputElement header valueOrDefault msg =
     Box.box' [ Props [ Class "registerBox" ] ] [
         Text.div [ Props [ Style [ PaddingLeft "1rem" ] ] ] [
@@ -118,7 +131,7 @@ let registerModal (model : Model) (dispatch : Msg -> unit) =
         ] 
     ]
 
-let verifyLoginModal (model : Model) extraElement (dispatch : Msg -> unit) msgInput =
+let verifyLoginModal (model : Model) (extraElement: (Model -> (Msg -> unit) -> ReactElement)) (dispatch : Msg -> unit) msgInput =
     let msg =
         match msgInput with
         | DeleteAccountRequest _ -> DeleteAccountRequest model.LoginModel
@@ -139,22 +152,25 @@ let verifyLoginModal (model : Model) extraElement (dispatch : Msg -> unit) msgIn
                 Modifiers [Modifier.BackgroundColor IsWhite]
                 Props [ Style [ BorderBottom "0px"] ]
             ] [
-                Modal.Card.title [ Props [ Style [ PaddingTop "1.5rem" ] ] ] [
+                Modal.Card.title [ Props [ Style [ Padding "0.75em 1em";BorderBottom "1px solid grey" ] ] ] [
                     str "Verify your Login"
                 ]
             ]
             Modal.Card.body  [ ] [
-                extraElement
-                inputRegisterBox
-                    Input.text
-                    "Current Username"
-                    model.LoginModel.Username
-                    (fun e -> dispatch (UpdateLoginUsername e.Value))
-                inputRegisterBox
-                    Input.password
-                    "Current Password"
-                    model.LoginModel.Password
-                    (fun e -> dispatch (UpdateLoginUserPw e.Value))
+                div [][
+                    text [][str "Verify your login information. This is done to increase security."]
+                    inputRegisterBox
+                        Input.text
+                        "Current Username"
+                        model.LoginModel.Username
+                        (fun e -> dispatch (UpdateLoginUsername e.Value))
+                    inputRegisterBox
+                        Input.password
+                        "Current Password"
+                        model.LoginModel.Password
+                        (fun e -> dispatch (UpdateLoginUserPw e.Value))
+                ]
+                extraElement model dispatch
                 Columns.columns [ Columns.Props [ Style [ PaddingTop "2rem" ] ] ] [
                     Column.column [Column.Offset (Screen.All,Column.IsHalf)] [
                         Button.button [
@@ -162,7 +178,7 @@ let verifyLoginModal (model : Model) extraElement (dispatch : Msg -> unit) msgIn
                             (if model.LoginModel.Username = "" || model.LoginModel.Password = "" then Button.Disabled true else Button.Disabled false )
                             Button.OnClick (fun _ -> dispatch msg)
                         ][
-                            str "Verify your login"
+                            str "Verify"
                         ]
                     ]
                 ]
@@ -312,13 +328,13 @@ let loginNavbar (model : Model) (dispatch : Msg -> unit) = [
         ] [
             Navbar.Link.a [ ] [
                 Text.div
-                    [ Modifiers [ Modifier.TextWeight TextWeight.SemiBold; Modifier.TextColor Color.IsWhiteBis ] ]
+                    [ Modifiers [ Modifier.TextWeight TextWeight.SemiBold; Modifier.TextColor Color.IsBlackBis ] ]
                     [ str "Log In"]
             ]
             Navbar.Dropdown.div [
                 Navbar.Dropdown.IsRight
                 Navbar.Dropdown.Props [ Style [ Width "15rem" ] ]
-                ] [
+            ] [
                 Navbar.Item.div
                     [ Navbar.Item.Props [Style [Cursor "text"]];Navbar.Item.Modifiers [Modifier.TextColor IsGrey] ]
                     [ str "Have an account?" ]
@@ -326,11 +342,11 @@ let loginNavbar (model : Model) (dispatch : Msg -> unit) = [
                     Input.text
                         [ Input.OnChange (
                             fun e ->
-                                //let newUser = { model.User with Username = e.Value}
                                 dispatch (UpdateLoginUsername e.Value)
                             )
                           Input.Placeholder "Username"
-                          Input.Props [ Id "UserName"; onEnter (DotnetLoginRequest model.LoginModel) dispatch ]
+                          Input.Value model.LoginModel.Username
+                          Input.Props [ onEnter (DotnetLoginRequest model.LoginModel) dispatch ]
                             ]
                     ]
                 Navbar.Item.div [ ][
@@ -340,7 +356,8 @@ let loginNavbar (model : Model) (dispatch : Msg -> unit) = [
                                 dispatch (UpdateLoginUserPw e.Value)
                             )
                           Input.Placeholder "Password"
-                          Input.Props [ Id "UserPw"; onEnter (DotnetLoginRequest model.LoginModel) dispatch ]
+                          Input.Value model.LoginModel.Password
+                          Input.Props [ onEnter (DotnetLoginRequest model.LoginModel) dispatch ]
                             ]
                     ]
                 Navbar.Item.a [
@@ -382,7 +399,8 @@ let loginNavbar (model : Model) (dispatch : Msg -> unit) = [
                         ]
                         [ str "Sign Up" ]
                     ]
-                ]
+                Navbar.Item.a [Navbar.Item.Props [Href "/api/google-auth"]] [ str "Oauth login"]
+            ]
         ]
     ]
     ]
@@ -412,7 +430,7 @@ let loggedInNavbar (model : Model) (dispatch : Msg -> unit) =
             ] [
                 Navbar.Link.a [ Navbar.Link.IsArrowless ] [
                     Text.span
-                        [ Modifiers [ Modifier.TextWeight TextWeight.SemiBold; Modifier.TextColor Color.IsWhiteBis ] ]
+                        [ Modifiers [ Modifier.TextWeight TextWeight.SemiBold; Modifier.TextColor Color.IsBlackBis ] ]
                         [ str (if model.User.IsSome then model.User.Value.Username else "No User Information")]
                 ]
                 Navbar.Dropdown.div [ Navbar.Dropdown.IsRight ] [
@@ -426,14 +444,42 @@ let loggedInNavbar (model : Model) (dispatch : Msg -> unit) =
         ]
     ]
 
+
+let welcomeElement model dispatch =
+    Hero.hero [
+        Hero.Props [
+            Style [
+                BackgroundImage @"linear-gradient(rgba(0, 0, 0, 0.0), rgba(0, 0, 0, 0.0)), url('https://www.tokkoro.com/picsup/2602833-minimalism-wallpaper-hd-windows.jpg')" 
+                BackgroundPosition "center"
+                BackgroundSize "contain"
+            ]
+        ]
+    ] [
+        Hero.head [ ] [ ]
+        Hero.body [ ] [
+            Container.container [
+                Container.IsFluid
+                Container.Modifiers [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered) ]
+            ] [
+            Heading.h1 [ ] [ str "ExampleApp" ]
+            Heading.h2 [ Heading.IsSubtitle ] [ str "User Manager" ]
+            constructionLabel model dispatch
+            ]
+        ]
+    ]
+
+
 let counter model dispatch = 
-      Container.container [ Container.Props [ Style [MarginTop "1rem"] ] ]
-          [ Content.content [ Content.Modifiers [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered) ] ]
-                [ Heading.h3 [] [ str ("Press buttons to manipulate counter: " + show model) ] ]
-            Columns.columns []
-                [ Column.column [] [ button "-" (fun _ -> dispatch Decrement) ]
-                  Column.column [] [ button "+" (fun _ -> dispatch Increment) ]
-                  Column.column [] [ button "secret" (fun _ -> dispatch GetUserCounterRequest) ] ] ]
+      Container.container [ Container.Props [ Style [MarginTop "1rem"] ] ] [
+        Column.column [Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Centered)]][
+            Heading.h6 [] [ str "Welcome! This is currently a placeholder Welcome-Screen. Please login to access user management functions." ]
+        ]
+        Content.content [ Content.Modifiers [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered) ] ]
+           [ Heading.h3 [] [ str ("Press buttons to manipulate counter: " + show model) ] ]
+        Columns.columns []
+           [ Column.column [] [ button "-" (fun _ -> dispatch Decrement) ]
+             Column.column [] [ button "+" (fun _ -> dispatch Increment) ]
+             Column.column [] [ button "secret" (fun _ -> dispatch GetUserCounterRequest) ] ] ]
 
 // Helper to generate a menu item
 let menuItem label msg =
@@ -462,9 +508,12 @@ let menu (model:Model) dispatch =
             Modifiers [ Modifier.TextSize (Screen.All,TextSize.Is7)]
             Props [Style [BackgroundColor "white";PaddingTop "1rem";PaddingLeft "1rem";Height "100%"]]
         ] [
-            Menu.label [ ] [ str "User Account" ]
             Menu.list [ ]
-              [ menuItem "Account Information" (fun _ -> dispatch (ChangeMainReactElement (UserAccount model.User.Value))) ]
+                [  ]
+            Menu.label [ ] [ str "User Account" ]
+            Menu.list [ ] [
+                menuItem "Home" (fun _ -> dispatch (ChangeMainReactElement Welcome))
+                menuItem "Account Information" (fun _ -> dispatch (ChangeMainReactElement (UserAccount model.User.Value))) ]
             Menu.label [ Modifiers [Modifier.IsHidden (hideElementsBy 5)] ] [ str "Account Management" ]
             Menu.list [ Modifiers [Modifier.IsHidden (hideElementsBy 5)] ] [
                 menuItem "User List"  (fun _ ->
@@ -527,19 +576,6 @@ let menuCard model dispatch =
         ]
     ]
 
-let constructionLabel model dispatch =
-    Column.column [ Column.Width (Screen.All,Column.IsHalf); Column.Offset (Screen.All, Column.IsOneQuarter);][
-        Box.box' [ Modifiers [Modifier.BackgroundColor Color.IsWhiteTer]; Props[Style[Color "#ff9900"]] ][
-            p [Style [TextAlign TextAlignOptions.Center;FontWeight "bold"]][str "ATTENTION YOU ENTERED A LINK THAT IS STILL UNDER CONSTRUCTION!"]
-            p [Style [TextAlign TextAlignOptions.Center;FontWeight "bold"]][str "PLEASE COME AGAIN LATER!"]
-            div [ Style [Width "100%";MarginTop "2rem"; Display DisplayOptions.Flex; JustifyContent "center" ] ][
-                Fa.span [ Fa.Solid.Wrench; Fa.Size Fa.Fa6x;Fa.Props [Style[MarginLeft "1rem";MarginRight "1rem"]]][]
-                Fa.span [ Fa.Solid.Tools; Fa.Size Fa.Fa6x;Fa.Props [Style[MarginLeft "1rem";MarginRight "1rem"]]][]
-                Fa.span [ Fa.Solid.PaintRoller; Fa.Size Fa.Fa6x;Fa.Props [Style[MarginLeft "1rem";MarginRight "1rem"]] ][]
-            ]
-        ]
-    ]
-
 /// View for User Account Information
 
 let userAccountinformationColumn headerStr informationStr msg =
@@ -553,81 +589,99 @@ let userAccountinformationColumn headerStr informationStr msg =
         ]
     ]
 
-let inputUsername dispatch =
+let inputUsername model dispatch =
     Container.container [][
-        text [][str "Type in your new username and verify your login data."]
+        text [][str "Type in your new username."]
         Column.column [][
             Input.text [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Username"]
         ]
     ]
 
-let inputEmail dispatch =
+let inputEmail model dispatch =
     Container.container [][
-        text [][str "Type in your new Email adress and verify your login data."]
+        text [][str "Type in your new Email adress."]
         Column.column [][
             Input.email [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Email"]
         ]
     ]
 
-let inputPw dispatch =
+let inputPw model dispatch =
     Container.container [][
-        text [][str "Type in your new password and verify your login data."]
+        text [][str "Type in your new password."]
         Column.column [][
             Input.password [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Password"]
         ]
     ]
 
-let inputUsernameAdmin dispatch =
+let inputUsernameAdmin model dispatch =
     Container.container [][
-        text [][str "You are about to change a users account parameters! Type in the new username and verify your login data."]
+        text [][str "You are about to change a users account parameters! Type in the new username."]
         Column.column [][
             Input.text [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Username"]
         ]
     ]
 
-let inputEmailAdmin dispatch =
+let inputEmailAdmin model dispatch =
     Container.container [][
-        text [][str "You are about to change a users account parameters! Type in the new Email adress and verify your login data."]
+        text [][str "You are about to change a users account parameters! Type in the new Email adress."]
         Column.column [][
             Input.email [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Email"]
         ]
     ]
 
-let inputPwAdmin dispatch =
+let inputPwAdmin model dispatch =
     Container.container [][
-        text [][str "You are about to change a users account parameters! Type in the new password and verify your login data."]
+        text [][str "You are about to change a users account parameters! Type in the new password."]
         Column.column [][
             Input.password [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Password"]
         ]
     ]
 
-let inputRoleAdmin dispatch =
+let inputRoleAdmin (model:Model) dispatch =
     Container.container [][
-        text [][str "You are about to change a users account parameters! Type in the new role and verify your login data."]
+        text [][str "You are about to change a users account parameters! Type in the new role."]
         Column.column [][
-            Input.text [Input.OnChange (fun e -> dispatch (UpdateInputString e.Value)); Input.Placeholder "... New Role"]
+            Dropdown.dropdown [ Dropdown.IsHoverable;Dropdown.IsUp] [
+                div [ ] [
+                    Button.button [ Button.Modifiers [Modifier.BackgroundColor IsWhiteTer] ] [
+                        span [ ] [ str (if model.InputString = "" then "Role" else model.InputString)]
+                        Icon.icon [ Icon.Size IsSmall ] [ Fa.i [ Fa.Solid.AngleDown ] [ ] ]
+                    ]
+                ]
+                Dropdown.menu [ ] [
+                    Dropdown.content [ ] [
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (UpdateInputString (string ActiveUserRoles.Admin))) ] ] [ str "Admin" ]
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (UpdateInputString (string ActiveUserRoles.UserManager))) ] ] [ str "UserManager" ]
+                        Dropdown.divider [ ]
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (UpdateInputString (string ActiveUserRoles.User))) ] ] [ str "User" ]
+                    ]
+                ]
+            ]
         ]
     ]
+
 
 let userAccountElement model (dispatch : Msg -> unit) (user:User) =
+    let strReactElement stringVal model dispatch =
+        str stringVal
     let elementFallbackIfEmpty =
         if model.User.IsNone || model.Authenticated = false
         then [ str "Access Denied" ]
         else
             let extraElementUserName =
                 if model.AdminViewUser.IsNone || user <> model.AdminViewUser.Value
-                then VerifyLoginModal (DotnetChangeUserParamRequest (model.LoginModel,Username,""), inputUsername dispatch)
-                else VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Username,""), inputUsernameAdmin dispatch)
+                then VerifyLoginModal (DotnetChangeUserParamRequest (model.LoginModel,Username,""), inputUsername)
+                else VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Username,""), inputUsernameAdmin)
             let extraElementEmail =
                 if model.AdminViewUser.IsNone || user <> model.AdminViewUser.Value
-                then VerifyLoginModal (DotnetChangeUserParamRequest (model.LoginModel,Email,""), inputEmail dispatch)
-                else VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Email,""), inputEmailAdmin dispatch)
+                then VerifyLoginModal (DotnetChangeUserParamRequest (model.LoginModel,Email,""), inputEmail)
+                else VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Email,""), inputEmailAdmin)
             let extraElementPassword =
                 if model.AdminViewUser.IsNone || user <> model.AdminViewUser.Value
-                then VerifyLoginModal (DotnetChangeUserParamRequest (model.LoginModel,Password,""), inputPw dispatch)
-                else VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Password,""), inputPwAdmin dispatch)
+                then VerifyLoginModal (DotnetChangeUserParamRequest (model.LoginModel,Password,""), inputPw)
+                else VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Password,""), inputPwAdmin)
             let extraElementRole =
-                VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Role,""), inputRoleAdmin dispatch)
+                VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Role,""), inputRoleAdmin)
             [
                 userAccountinformationColumn "Name" user.Username (fun _ -> dispatch (UpdateExtraElement extraElementUserName))
                 userAccountinformationColumn "E-Mail"user.Email (fun _ -> dispatch (UpdateExtraElement extraElementEmail))
@@ -655,12 +709,12 @@ let userAccountElement model (dispatch : Msg -> unit) (user:User) =
             if model.AdminViewUser.IsNone || user <> model.AdminViewUser.Value
             then (fun _ ->
                 dispatch (UpdateExtraElement
-                    (VerifyLoginModal (DeleteAccountRequest model.LoginModel,str "Delete your account"))
+                    (VerifyLoginModal (DeleteAccountRequest model.LoginModel,strReactElement "Delete your account"))
                 )
             )
             else ( fun _ ->
                 dispatch (UpdateExtraElement
-                    (VerifyLoginModal (AdminDeleteAccountRequest (model.LoginModel, model.AdminViewUser.Value), str "You are about to delete a user account. Please verify your login."))
+                    (VerifyLoginModal (AdminDeleteAccountRequest (model.LoginModel, model.AdminViewUser.Value), strReactElement "You are about to delete a user account. Please verify your login."))
                 )
             )
         Columns.columns [
@@ -672,7 +726,7 @@ let userAccountElement model (dispatch : Msg -> unit) (user:User) =
         ]]] [
             Column.column [][
                 Heading.h6 [][str "Delete this user account"]
-                Heading.h6 [Heading.IsSubtitle] [str "Once you delete your account, there is no going back. Please be certain"]
+                Heading.h6 [Heading.IsSubtitle] [ if user = model.User.Value then str "Once you delete your account, there is no going back. Please be certain" else str "Once you delete this account, there is no going back. Please be certain"]
             ]
             Column.column [Column.Width (Screen.All,Column.IsOneFifth);Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Right)]][
                 Button.button [Button.Color IsDanger;Button.OnClick deleteMsg][
@@ -732,7 +786,7 @@ let dropdownNavbarButtonSize (nameStr:string) dispatchElement =
 
 let displayAllUsersNavbar model dispatch =
     Navbar.navbar [ Navbar.Props [ Style [
-        MarginTop "0.5%";BorderBottom "1px solid lightgrey"; MarginBottom "0.5%";
+        PaddingTop "0.5%";BorderBottom "1px solid lightgrey"; MarginBottom "0.5%";
         JustifyContent "center"; ZIndex "5"
     ]]] [
         Navbar.Item.a [ Navbar.Item.Props [Style [Width "25%"]]][

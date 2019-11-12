@@ -1,3 +1,4 @@
+Microsoft.AspNetCore.Authentication.Google
 Microsoft.AspNetCore.Identity.EntityFrameworkCore
 Microsoft.EntityFrameworkCore.InMemory
 Microsoft.EntityFrameworkCore.SqlServer

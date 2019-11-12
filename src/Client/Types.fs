@@ -16,16 +16,15 @@ let [<Literal>] ENTER_KEY = 13.
 
 
 type MainReactElement =
+| Welcome
 | Counter
 | UserAccount of User
 | UserList
-| RoleRights of ActiveUserRoles
-| UserSettings of User
 
 type ExtraReactElement =
 |EmptyElement
 |RegisterModal
-|VerifyLoginModal of Msg * ReactElement
+|VerifyLoginModal of Msg * (Model -> (Msg -> unit) -> ReactElement)
 |AdminRegisterModal
 |Message of string
 
@@ -95,6 +94,8 @@ and Msg =
     | AdminChangeUserParamsResponse of Result<DotnetChangeParameterResults,exn>
     | AdminDeleteAccountRequest of LoginModel * User
     | AdminDeleteAccountResponse of Result<DotnetDeleteAccountResults,exn>
+    | GetGoogleLoginRequest
+    | GetGoogleLoginResponse of Result<string,exn>
 
 
 module ServerPath =
@@ -148,3 +149,8 @@ module Server =
         Remoting.createApi()
         |> Remoting.withRouteBuilder normalizeRoutes
         |> Remoting.buildProxy<IAdminSecureApi>
+
+    let oAuthGithubApi : IOauthApi =
+        Remoting.createApi()
+        |> Remoting.withRouteBuilder normalizeRoutes
+        |> Remoting.buildProxy<IOauthApi>

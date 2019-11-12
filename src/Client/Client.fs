@@ -13,7 +13,9 @@ open Client.View
 open Fable
 open Fable.React
 open Fable.React.Props
+open System.IO
 
+let path = Environment.CurrentDirectory
 
 let extraEle model dispatch =
     match model.ExtraReactElement with
@@ -26,12 +28,13 @@ let extraEle model dispatch =
 let view (model : Model) (dispatch : Msg -> unit) =
     div [ ] [
         menuCard model dispatch
-        Navbar.navbar [ Navbar.Color IsPrimary ]
+        Navbar.navbar [ Navbar.Color IsWhiteBis; Navbar.Props [Style [BorderBottom "1px solid grey"]] ]
             (if model.Authenticated = true then (loggedInNavbar model dispatch) else (loginNavbar model dispatch ))
         extraEle model dispatch
-        // Menu rendering
+        // Main Element rendering
         (
             match model.MainReactElement with
+            | Welcome -> welcomeElement model dispatch
             | Counter -> counter model dispatch
             | UserAccount user -> userAccountElement model dispatch user
             | UserList -> displayAllUsersElement model dispatch

@@ -1,5 +1,6 @@
 source https://www.nuget.org/api/v2
 
+nuget Microsoft.AspNetCore.Authentication.Google 3.0.0
 nuget Microsoft.AspNetCore.Identity.EntityFrameworkCore
 nuget Microsoft.AspNetCore.Identity.UI 3.0.0
 nuget Microsoft.EntityFrameworkCore.InMemory

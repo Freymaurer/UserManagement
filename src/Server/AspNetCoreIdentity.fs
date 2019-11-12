@@ -11,6 +11,12 @@ open FSharp.Control.Tasks
 open System.Security.Claims
 open System.Text
 
+let isGoogleUser (context: HttpContext) =
+    context.User.Claims |>
+        Seq.exists (
+            fun claim ->
+                claim.Issuer = "Google"
+        )
 
 let showErrors (errors : IdentityError seq) =
     errors
@@ -19,8 +25,15 @@ let showErrors (errors : IdentityError seq) =
         |> acc.AppendLine : StringBuilder) (StringBuilder(""))
     |> (fun x -> x.ToString())
 
+open Microsoft.AspNetCore.Authentication
 
-let dotnetLogin (user:LoginModel) (context: HttpContext) =
+let dotnetLogin (user:LoginModel) (contextPre: HttpContext) =
+    let prevSignOut (ctx: HttpContext) =
+        task {
+            do! ctx.SignOutAsync("Cookies")
+            return ctx
+        } |> fun x -> x.Result
+    let context = prevSignOut contextPre
     match user.Username,user.Password with
     | "","" -> LoginFail "Password and Username are empty"
     | "",_ -> LoginFail "Username is empty"
@@ -150,14 +163,28 @@ let adminChangeUserParams (loginModel:LoginModel) (userInput:User) (userParamete
         } |> fun x -> x.Result
     else ChangeParamFail "Error 401 Access Denied; 00"
 
+let googleUserHandler (ctx: HttpContext) =
+    let nameClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Name)
+    let emailClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Email)
+    if ctx.User.Identity.IsAuthenticated
+    then
+        {Username = nameClaim.Value; Email = emailClaim.Value; Role = Guest}
+    else
+        failwith "googleUserHandler returned an error. User not authenticated."
+
 let dotnetGetUser (context: HttpContext) =
-    task {
-        let userManager = context.GetService<UserManager<IdentityUser>>()
-        let! user = userManager.GetUserAsync context.User
-        let! getRole= (userManager.GetClaimsAsync(user))
-        let role = getRole |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Shared.AuxFunctions.stringToRoles)
-        return { Username = user.UserName; Email = user.Email; Role = role }
-    } |> fun x -> x.Result
+    
+    if isGoogleUser context
+    then
+        googleUserHandler context
+    else 
+        task {
+            let userManager = context.GetService<UserManager<IdentityUser>>()
+            let! user = userManager.GetUserAsync context.User
+            let! getRole= (userManager.GetClaimsAsync(user))
+            let role = getRole |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Shared.AuxFunctions.stringToRoles)
+            return { Username = user.UserName; Email = user.Email; Role = role }
+        } |> fun x -> x.Result
 
 let dotnetGetAllUsers (context: HttpContext) =
     task {
@@ -179,8 +206,13 @@ let dotnetGetAllUsers (context: HttpContext) =
     } |> fun x -> x.Result
 
 let dotnetUserLogOut (context: HttpContext) =
+    let prevSignOut (ctx: HttpContext) =
+        task {
+            do! ctx.SignOutAsync("Cookies")
+            return ctx
+        } |> fun x -> x.Result
     task {
-        let signInManager = context.GetService<SignInManager<IdentityUser>>()
+        let signInManager = (prevSignOut context).GetService<SignInManager<IdentityUser>>()
         do! signInManager.SignOutAsync()
         return LogoutSuccess "Log Out Success"
     } |> fun x -> x.Result
@@ -194,11 +226,14 @@ let dotnetRegistration (registerModel:RegisterModel) (context: HttpContext) =
         | false -> return (RegisterFail (showErrors result.Errors))
         | true  ->
             let! addingClaims = userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, "User"))
-            match addingClaims.Succeeded with
-            | false -> return (RegisterFail (showErrors result.Errors))
-            | true  -> let signInManager = context.GetService<SignInManager<IdentityUser>>()
-                       do! signInManager.SignInAsync(user, true)
-                       return RegisterSuccess "Registration Successful"
+            let! addingClaims2 = userManager.AddClaimAsync(user, new Claim(ClaimTypes.AuthenticationMethod, "Registration"))
+            match addingClaims.Succeeded,addingClaims2.Succeeded with
+            | false,false -> return (RegisterFail (showErrors result.Errors))
+            | true,true  ->
+                let signInManager = context.GetService<SignInManager<IdentityUser>>()
+                do! signInManager.SignInAsync(user, true)
+                return RegisterSuccess "Registration Successful"
+            | _,_ -> return (RegisterFail (showErrors result.Errors))
     } |> fun x -> x.Result
 
 let adminUserRegistration (registerModel:RegisterModel) (role:ActiveUserRoles) (context: HttpContext) =
@@ -213,7 +248,10 @@ let adminUserRegistration (registerModel:RegisterModel) (role:ActiveUserRoles) (
             | false -> return (RegisterFail (showErrors result.Errors))
             | true  ->
                 let! addingClaims = userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, string role))
-                match addingClaims.Succeeded with
-                | false -> return (RegisterFail (showErrors result.Errors))
-                | true  -> return RegisterSuccess "Registration Successful"
+                let! addingClaims2 = userManager.AddClaimAsync(user, new Claim(ClaimTypes.AuthenticationMethod, "Registration"))
+                match addingClaims.Succeeded,addingClaims2.Succeeded with
+                | false,false -> return (RegisterFail (showErrors result.Errors))
+                | true,true  ->
+                    return RegisterSuccess "Registration Successful"
+                | _,_ -> return (RegisterFail (showErrors result.Errors))
         } |> fun x -> x.Result

@@ -24,7 +24,7 @@ var CONFIG = {
     // When using webpack-dev-server, you may need to redirect some calls
     // to a external API server. See https://webpack.js.org/configuration/dev-server/#devserver-proxy
     devServerProxy: {
-        '/mygtest/*': {
+        '/signin-google': {
             target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
             changeOrigin: true
         },

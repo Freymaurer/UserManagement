@@ -203,20 +203,30 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ErrorMsg = Some e.Message
                 Loading = false
                 LoginModel = {currentModel.LoginModel with Password = ""}
+                MainReactElement = Counter
         }
         nextModel,Cmd.ofMsg (UpdateExtraElement (Message e.Message))
     | _ , DotnetLoginResponse (Result.Ok value) ->
-        let (message,cmd) =
+        let (nextModel,cmd) =
             match value with
-            | LoginSuccess msg -> msg, Cmd.ofMsg DotnetGetUserRequest
-            | LoginFail msg -> msg, Cmd.ofMsg (UpdateExtraElement (Message msg))
-        let nextModel = {
-            currentModel with
-                ErrorMsg = Some message
-                Loading = false
-                MainReactElement = Counter
-                LoginModel = {Username = ""; Password = ""}
-        }
+            | LoginSuccess msg ->
+                {
+                    currentModel with
+                        ErrorMsg = Some msg
+                        Loading = false
+                        MainReactElement = Counter
+                        LoginModel = {Username = ""; Password = ""}
+                },
+                Cmd.ofMsg DotnetGetUserRequest
+            | LoginFail msg ->
+                {
+                    currentModel with
+                        ErrorMsg = Some msg
+                        Loading = false
+                        MainReactElement = Counter
+                        LoginModel = {Username = ""; Password = ""}
+                },
+                Cmd.ofMsg (UpdateExtraElement (Message msg))
         nextModel, cmd
         /// functions to access already logged in user information
     | _, DotnetGetUserRequest ->
@@ -495,6 +505,26 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 LoginModel = {Username = ""; Password = ""}
         }
         nextModel,Cmd.none
+    | _, GetGoogleLoginRequest ->
+        let cmd =
+            Cmd.OfAsync.either
+                Server.oAuthGithubApi.getUserFromGoogle
+                ()
+                (Ok >> GetGoogleLoginResponse)
+                (Error >> GetGoogleLoginResponse)
+        currentModel, cmd
+    | _, GetGoogleLoginResponse (Ok value) ->
+        let nextModel = {
+            currentModel with
+                ExtraReactElement = Message ("Connection was stable and succeded " + value)    
+        }
+        nextModel,Cmd.none
+    | _, GetGoogleLoginResponse (Error e) ->
+        let nextModel = {
+            currentModel with
+                ExtraReactElement = Message e.Message
+        }
+        nextModel, Cmd.none
     | _, Debug (message) ->
         { currentModel with ErrorMsg = Some message}, Cmd.none
     | _ -> currentModel, Cmd.none

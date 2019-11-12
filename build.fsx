@@ -87,7 +87,7 @@ Target.create "Run" (fun _ ->
         runDotNet "watch run" serverPath
     }
     let client = async {
-        runTool yarnTool "webpack-dev-server" __SOURCE_DIRECTORY__
+        runTool yarnTool "webpack-dev-server --disable-host-check" __SOURCE_DIRECTORY__
     }
     let browser = async {
         do! Async.Sleep 5000

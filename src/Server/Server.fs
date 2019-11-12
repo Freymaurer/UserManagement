@@ -12,10 +12,14 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Identity.EntityFrameworkCore
 open Microsoft.EntityFrameworkCore
-open FSharp.Control.Tasks
 open System.Security.Claims
 
 open AspNetCoreIdentity
+open FSharp.Control.Tasks
+open Microsoft.Extensions.Configuration
+open System.Security.Cryptography.X509Certificates
+open Microsoft.AspNetCore.Server.Kestrel.Core
+open System.Net
 
 let tryGetEnv = System.Environment.GetEnvironmentVariable >> function null | "" -> None | x -> Some x
 
@@ -31,6 +35,7 @@ let nice() =
 let dotnetApi (context: HttpContext) = {
     dotnetLogin = fun (loginModel) -> async { return (dotnetLogin loginModel context) }
     dotnetRegister = fun (registerModel) -> async { return (dotnetRegistration registerModel context) }
+    githubSignIn = fun () -> async { return "nice"}
 }
 
 let dotnetSecureApi (context: HttpContext) = {
@@ -52,89 +57,39 @@ let adminSecureApi (context: HttpContext) = {
     adminChangeUserParameters = fun (loginModel,userInput,userParam,input) -> async { return adminChangeUserParams loginModel userInput userParam input context }
 }
 
+
 open Microsoft.AspNetCore.Builder
+open Microsoft.AspNetCore.Authentication.Cookies
+open Microsoft.AspNetCore.Authentication
+open FSharp.Control.Tasks.V2.ContextInsensitive
 
-///https://github.com/giraffe-fsharp/Giraffe/blob/master/samples/IdentityApp/IdentityApp/Program.fs
-let configureServices (services : IServiceCollection) =
+//let googleAuth = challengeG "Google" "/api/IDotnetSecureApi/dotnetGetUser"
 
-    ////////////////////////////////////////// IN MEMORY Block ////////////////////////////////////////////////
-
-    // Configure InMemory Db for sample application
-    //services.AddDbContext<IdentityDbContext<IdentityUser>>(
-    //    fun options ->
-    //        options.UseInMemoryDatabase("NameOfDatabase") |> ignore
-    //    ) |> ignore
-
-    ////////////////////////////////////////// End of IN MEMORY Block ////////////////////////////////////////////////
-
-    ///////////////////////////////////////// SQL SERVER Block ////////////////////////////////////////////////////
-
-    ///This database is created by the CSharp dummy project
-    services.AddDbContext<IdentityDbContext>(
-        fun options ->
-            options.UseSqlServer(
-                @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=aspnet-EFIdentityDummyProject-5EB33349-BFC7-4D68-9488-5B635B1057A9;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False"
-            ) |> ignore
-        ) |> ignore
-
-    ///////////////////////////////////////// End of SQL SERVER Block ////////////////////////////////////////////////////
-
-    ///You can use either one of the following services.AddIdentity blocks. bot should work just fine
-
-    //Block 1; example taken from https://github.com/giraffe-fsharp/Giraffe/blob/master/samples/IdentityApp/IdentityApp/Program.fs
-    // Register Identity Dependencies
-    //services.AddIdentity<IdentityUser, IdentityRole>(
-    //    fun options ->
-    //        // Password settings
-    //        options.Password.RequireDigit   <- true
-    //        options.Password.RequiredLength <- 8
-    //        options.Password.RequireNonAlphanumeric <- false
-    //        options.Password.RequireUppercase <- true
-    //        options.Password.RequireLowercase <- false
-
-    //        // Lockout settings
-    //        options.Lockout.DefaultLockoutTimeSpan  <- TimeSpan.FromMinutes 30.0
-    //        options.Lockout.MaxFailedAccessAttempts <- 10
-
-    //        // User settings
-    //        options.User.RequireUniqueEmail <- true
-    //    )
-    //    .AddEntityFrameworkStores<IdentityDbContext>()
-    //    .AddDefaultTokenProviders()
-    //    |> ignore
-
-    //Block 2; example taken from C# Asp.Net Core Webapplication
-    services.AddDefaultIdentity<IdentityUser>(
-        fun options ->
-            options.User.RequireUniqueEmail <- true
-            options.Password.RequireDigit <- false
-            options.Password.RequiredLength <- 4
-            options.Password.RequiredUniqueChars <- 2
-            options.Password.RequireLowercase <- false
-            options.Password.RequireNonAlphanumeric <- false
-            options.Password.RequireUppercase <- false
-        )
-        .AddEntityFrameworkStores<IdentityDbContext>()
-        .AddDefaultTokenProviders()
-        //.AddRoleManager<IdentityRole>()
-        |> ignore
+let googleAuth =
+    let challenge (scheme : string) (redirectUri : string) : HttpHandler =
+        fun (next : HttpFunc) (ctx : HttpContext) ->
+            task {
+                do! ctx.ChallengeAsync(
+                        scheme,
+                        AuthenticationProperties(RedirectUri = redirectUri))
+                return! next ctx
+            }
+    challenge "Google" "http://localhost:8080/"
 
 
-    // Configure app cookie
-    services.ConfigureApplicationCookie(
-        fun options ->
-            options.ExpireTimeSpan <- TimeSpan.FromDays 150.0
-        ) |> ignore
+let userHandler (ctx: HttpContext) =
+    let nameClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Name)
+    let emailClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Email)
+    if ctx.User.Identity.IsAuthenticated then 
+        [|nameClaim.Value;emailClaim.Value;nameClaim.Issuer|]
+        |> String.concat "; "
+    else
+        "Not logged in"
 
-    // Enable CORS
-    services.AddCors() |> ignore
+let oauthApi (context: HttpContext) = {
+    getUserFromGoogle = fun () -> async { return (userHandler context)}
+}
 
-    // Configure Giraffe dependencies
-    services.AddGiraffe()
-
-/// necessary to authenticate when logged in!
-let configureApp (app : IApplicationBuilder) =
-    app.UseAuthentication()
 
 // exmp http://localhost:8080/api/ICounterApi/initialCounter
 // exmp http://localhost:8080/api/ISecuredApi/securedCounter
@@ -169,8 +124,9 @@ let webApp =
         |> Remoting.withDiagnosticsLogger (printfn "%s")
         |> Remoting.buildHttpHandler
 
+
     let mustBeLoggedIn : HttpHandler =
-        requiresAuthentication (redirectTo false "/")
+        requiresAuthentication (text "normal authentication failed")//(redirectTo false "/")
 
     let mustBeUserManager : HttpHandler =
         authorizeUser (
@@ -183,22 +139,97 @@ let webApp =
             setStatusCode 401 >=> text "Access Denied"
         )
 
-    let mustBeDeveloper : HttpHandler =
-        authorizeUser (fun u -> u.HasClaim (ClaimTypes.Name, "Kevin") || u.HasClaim (ClaimTypes.Role, "Developer")) (setStatusCode 401 >=> text "Access Denied")
+    let oAuthApi =
+        Remoting.createApi()
+        |> Remoting.withRouteBuilder Route.builder
+        |> Remoting.fromContext oauthApi
+        |> Remoting.withDiagnosticsLogger (printfn "%s")
+        |> Remoting.buildHttpHandler
 
     router {
         not_found_handler (setStatusCode 404 >=> text "Not Found")
-        //forward "/mygtest" myPaths
+        forward "/api/testing" (text "hello")
+        forward "/api/google-auth" googleAuth
+        forward "/api/logout-g" (signOut "Cookies" >=> (redirectTo false "http://localhost:8080/") )
         forward "" dotnetServiceApi
         forward "" userApi
+        forward "" oAuthApi
         forward "" (mustBeLoggedIn >=> dotnetSecureApi)
         forward "" (mustBeLoggedIn >=> mustBeUserManager >=> adminSecureApi)
     }
 
+let testClientId = "84896855857-3sq30njitdkb44mme3ksvh3vj829ei57.apps.googleusercontent.com"
+let testClientSecret = "jZWx6xzNKmMjUjQT7GZc7JJV"
+
+///https://github.com/giraffe-fsharp/Giraffe/blob/master/samples/IdentityApp/IdentityApp/Program.fs
+let configureServices (services : IServiceCollection) =
+
+    ///////////////////////////////////////// SQL SERVER Block ////////////////////////////////////////////////////
+
+    ///This database is created by the CSharp dummy project
+    services.AddDbContext<IdentityDbContext>(
+        fun options ->
+            options.UseSqlServer(
+                @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=aspnet-EFIdentityDummyProject-5EB33349-BFC7-4D68-9488-5B635B1057A9;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False"
+            ) |> ignore
+        ) |> ignore
+
+    //Block 2; example taken from C# Asp.Net Core Webapplication
+    services.AddDefaultIdentity<IdentityUser>(
+        fun options ->
+            options.User.RequireUniqueEmail <- true
+            options.Password.RequireDigit <- false
+            options.Password.RequiredLength <- 4
+            options.Password.RequiredUniqueChars <- 2
+            options.Password.RequireLowercase <- false
+            options.Password.RequireNonAlphanumeric <- false
+            options.Password.RequireUppercase <- false
+        )
+        .AddEntityFrameworkStores<IdentityDbContext>()
+        .AddDefaultTokenProviders()
+        |> ignore
+
+    services.AddAuthentication(
+        fun options ->
+            ///// this kill identity log in, but is necessary for oauth login. My guess, one works via token login and one via cookie log in
+            options.DefaultAuthenticateScheme <- CookieAuthenticationDefaults.AuthenticationScheme
+            options.DefaultSignInScheme <- CookieAuthenticationDefaults.AuthenticationScheme
+            options.DefaultChallengeScheme <- "Google"
+        )
+        .AddCookie(
+            fun options ->
+                options.LogoutPath <- PathString "/api/logout-g"
+            )
+        .AddGoogle("Google",
+            fun options ->
+                options.ClientId <- testClientId
+                options.ClientSecret <- testClientSecret
+        )
+        |> ignore
+    services.AddAuthentication(
+        fun options ->
+            options.DefaultAuthenticateScheme <- "Identity.Application"
+            options.DefaultSignInScheme <- "Identity.Application"
+        )
+        |> ignore
+
+
+    // Configure app cookie
+    services.ConfigureApplicationCookie(
+        fun options ->
+            options.ExpireTimeSpan <- TimeSpan.FromDays 150.0
+        ) |> ignore
+
+    // Enable CORS
+    services.AddCors() |> ignore
+
+    // Configure Giraffe dependencies
+    services.AddGiraffe()
+
 //https://saturnframework.org/docs/api/application/
 let app =
     application {
-    app_config configureApp
+    app_config (fun a -> a.UseAuthentication().UseAuthorization() )
     service_config configureServices
     use_router webApp
     url ("http://0.0.0.0:" + port.ToString() + "/")

@@ -68,6 +68,7 @@ type ICounterApi = {
 type IDotnetApi = {
     dotnetLogin : LoginModel -> Async<DotnetLoginResults>
     dotnetRegister : RegisterModel -> Async<DotnetRegisterResults>
+    githubSignIn    : unit -> Async<string>
 }
 
 type IDotnetSecureApi = {
@@ -83,6 +84,10 @@ type IAdminSecureApi = {
     adminRegisterUser : RegisterModel*ActiveUserRoles -> Async<DotnetRegisterResults>
     adminDeleteAccount : LoginModel * User -> Async<DotnetDeleteAccountResults>
     adminChangeUserParameters : LoginModel * User * UserParameters * string -> Async<DotnetChangeParameterResults>
+}
+
+type IOauthApi = {
+    getUserFromGoogle : unit -> Async<string>
 }
 
 module AuxFunctions =
