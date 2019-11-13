@@ -60,15 +60,11 @@ module Route =
 
 /// A type that specifies the communication protocol between client and server
 /// to learn more, read the docs at https://zaid-ajaj.github.io/Fable.Remoting/src/basics.html
-type ICounterApi = {
-    // returns initial count of 42
-    initialCounter : unit -> Async<Counter>
-    }
-
-type IDotnetApi = {
+type IUserApi = {
     dotnetLogin : LoginModel -> Async<DotnetLoginResults>
     dotnetRegister : RegisterModel -> Async<DotnetRegisterResults>
-    githubSignIn    : unit -> Async<string>
+    getContextClaims : unit -> Async<string>
+    initialCounter : unit -> Async<Counter>
 }
 
 type IDotnetSecureApi = {
@@ -84,10 +80,6 @@ type IAdminSecureApi = {
     adminRegisterUser : RegisterModel*ActiveUserRoles -> Async<DotnetRegisterResults>
     adminDeleteAccount : LoginModel * User -> Async<DotnetDeleteAccountResults>
     adminChangeUserParameters : LoginModel * User * UserParameters * string -> Async<DotnetChangeParameterResults>
-}
-
-type IOauthApi = {
-    getUserFromGoogle : unit -> Async<string>
 }
 
 module AuxFunctions =

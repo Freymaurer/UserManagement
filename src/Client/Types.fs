@@ -94,8 +94,8 @@ and Msg =
     | AdminChangeUserParamsResponse of Result<DotnetChangeParameterResults,exn>
     | AdminDeleteAccountRequest of LoginModel * User
     | AdminDeleteAccountResponse of Result<DotnetDeleteAccountResults,exn>
-    | GetGoogleLoginRequest
-    | GetGoogleLoginResponse of Result<string,exn>
+    | GetContextClaimsRequest
+    | GetContextClaimsResponse of Result<string,exn>
 
 
 module ServerPath =
@@ -130,15 +130,10 @@ module Server =
         |> ServerPath.normalize
 
     /// A proxy you can use to talk to server directly
-    let userApi : ICounterApi =
+    let userApi : IUserApi =
         Remoting.createApi()
         |> Remoting.withRouteBuilder normalizeRoutes
-        |> Remoting.buildProxy<ICounterApi>
-
-    let dotnetApi : IDotnetApi =
-        Remoting.createApi()
-        |> Remoting.withRouteBuilder normalizeRoutes
-        |> Remoting.buildProxy<IDotnetApi>
+        |> Remoting.buildProxy<IUserApi>
 
     let dotnetSecureApi : IDotnetSecureApi =
         Remoting.createApi()
@@ -150,7 +145,3 @@ module Server =
         |> Remoting.withRouteBuilder normalizeRoutes
         |> Remoting.buildProxy<IAdminSecureApi>
 
-    let oAuthGithubApi : IOauthApi =
-        Remoting.createApi()
-        |> Remoting.withRouteBuilder normalizeRoutes
-        |> Remoting.buildProxy<IOauthApi>

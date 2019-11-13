@@ -155,7 +155,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         let nextModel = { currentModel with ExtraReactElement = EmptyElement }
         let cmd =
             Cmd.OfAsync.either
-                Server.dotnetApi.dotnetRegister
+                Server.userApi.dotnetRegister
                 (registermodel)
                 (Ok >> DotnetRegisterResponse)
                 (Error >> DotnetRegisterResponse)
@@ -188,7 +188,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
     | _, DotnetLoginRequest (user) ->
         let cmdLogin =
             Cmd.OfAsync.either
-                Server.dotnetApi.dotnetLogin
+                Server.userApi.dotnetLogin
                 user
                 (Result.Ok >> DotnetLoginResponse)
                 (Result.Error >> DotnetLoginResponse)
@@ -505,21 +505,21 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 LoginModel = {Username = ""; Password = ""}
         }
         nextModel,Cmd.none
-    | _, GetGoogleLoginRequest ->
+    | _, GetContextClaimsRequest ->
         let cmd =
             Cmd.OfAsync.either
-                Server.oAuthGithubApi.getUserFromGoogle
+                Server.userApi.getContextClaims
                 ()
-                (Ok >> GetGoogleLoginResponse)
-                (Error >> GetGoogleLoginResponse)
+                (Ok >> GetContextClaimsResponse)
+                (Error >> GetContextClaimsResponse)
         currentModel, cmd
-    | _, GetGoogleLoginResponse (Ok value) ->
+    | _, GetContextClaimsResponse (Ok value) ->
         let nextModel = {
             currentModel with
                 ExtraReactElement = Message ("Connection was stable and succeded >=> " + value)    
         }
         nextModel,Cmd.none
-    | _, GetGoogleLoginResponse (Error e) ->
+    | _, GetContextClaimsResponse (Error e) ->
         let nextModel = {
             currentModel with
                 ExtraReactElement = Message e.Message

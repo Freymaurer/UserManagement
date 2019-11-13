@@ -13,13 +13,17 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Identity.EntityFrameworkCore
 open Microsoft.EntityFrameworkCore
 open System.Security.Claims
+open Microsoft.AspNetCore.Builder
+open Microsoft.AspNetCore.Authentication.Cookies
+open Microsoft.AspNetCore.Authentication
+open FSharp.Control.Tasks.V2.ContextInsensitive
+open System.Net.Http
+open System.Net.Http.Headers
+open System.Text.Json
+open System.Threading.Tasks
 
 open AspNetCoreIdentity
-open FSharp.Control.Tasks
-open Microsoft.Extensions.Configuration
-open System.Security.Cryptography.X509Certificates
-open Microsoft.AspNetCore.Server.Kestrel.Core
-open System.Net
+
 
 let tryGetEnv = System.Environment.GetEnvironmentVariable >> function null | "" -> None | x -> Some x
 
@@ -31,65 +35,6 @@ let port =
 
 let nice() =
     { Value = 69 }
-
-let dotnetApi (context: HttpContext) = {
-    dotnetLogin = fun (loginModel) -> async { return (dotnetLogin loginModel context) }
-    dotnetRegister = fun (registerModel) -> async { return (dotnetRegistration registerModel context) }
-    githubSignIn = fun () -> async { return "nice"}
-}
-
-let dotnetSecureApi (context: HttpContext) = {
-    getUserCounter = fun () -> async { return nice() }
-    dotnetGetUser = fun () -> async { return (dotnetGetUser context)}
-    dotnetUserLogOut = fun () -> async { return dotnetUserLogOut context }
-    dotnetDeleteUserAccount = fun loginModel -> async {return (dotnetDeleteAccount loginModel context)}
-    dotnetChangeUserParameters = fun (loginModel,userParam,input) -> async { return dotnetChangeUserParams loginModel userParam input context }
-}
-
-let counterApi = {
-    initialCounter = fun () -> async {return { Value = 42 }}
-}
-
-let adminSecureApi (context: HttpContext) = {
-    dotnetGetAllUsers = fun () -> async { return dotnetGetAllUsers context}
-    adminRegisterUser = fun (registerModel,userRole) -> async { return adminUserRegistration registerModel userRole context}
-    adminDeleteAccount = fun (loginModel,user) -> async { return adminDeleteAccount loginModel user context }
-    adminChangeUserParameters = fun (loginModel,userInput,userParam,input) -> async { return adminChangeUserParams loginModel userInput userParam input context }
-}
-
-
-open Microsoft.AspNetCore.Builder
-open Microsoft.AspNetCore.Authentication.Cookies
-open Microsoft.AspNetCore.Authentication
-open FSharp.Control.Tasks.V2.ContextInsensitive
-open System.Net.Http
-open System.Net.Http.Headers
-open System.Text.Json
-open System.Threading.Tasks
-
-//let googleAuth = challengeG "Google" "/api/IDotnetSecureApi/dotnetGetUser"
-
-let googleAuth =
-    let challenge (scheme : string) (redirectUri : string) : HttpHandler =
-        fun (next : HttpFunc) (ctx : HttpContext) ->
-            task {
-                do! ctx.ChallengeAsync(
-                        scheme,
-                        AuthenticationProperties(RedirectUri = redirectUri))
-                return! next ctx
-            }
-    challenge "Google" "http://localhost:8080/"
-
-let gitHubAuth =
-    let challenge (scheme : string) (redirectUri : string) : HttpHandler =
-        fun (next : HttpFunc) (ctx : HttpContext) ->
-            task {
-                do! ctx.ChallengeAsync(
-                        scheme,
-                        AuthenticationProperties(RedirectUri = redirectUri))
-                return! next ctx
-            }
-    challenge "GitHub" "http://localhost:8080/"
 
 let userHandler (ctx: HttpContext) =
     let nameClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Name)
@@ -105,9 +50,47 @@ let userHandler (ctx: HttpContext) =
     else
         "Not logged in"
 
-let oauthApi (context: HttpContext) = {
-    getUserFromGoogle = fun () -> async { return (userHandler context)}
+module OAuth =
+
+    let private challenge (scheme : string) (redirectUri : string) : HttpHandler =
+        fun (next : HttpFunc) (ctx : HttpContext) ->
+            task {
+                do! ctx.ChallengeAsync(
+                        scheme,
+                        AuthenticationProperties(RedirectUri = redirectUri))
+                return! next ctx
+            }
+
+    let gitHubAuth =
+        challenge "GitHub" "http://localhost:8080/"
+
+    let googleAuth =
+        challenge "Google" "http://localhost:8080/"
+
+
+let dotnetApi (context: HttpContext) = {
+    dotnetLogin = fun (loginModel) -> async { return (dotnetLogin loginModel context) }
+    dotnetRegister = fun (registerModel) -> async { return (dotnetRegistration registerModel context) }
+    getContextClaims = fun () -> async { return (userHandler context)}
+    initialCounter = fun () -> async {return { Value = 42 }}
 }
+
+let dotnetSecureApi (context: HttpContext) = {
+    getUserCounter = fun () -> async { return nice() }
+    dotnetGetUser = fun () -> async { return (dotnetGetUser context)}
+    dotnetUserLogOut = fun () -> async { return dotnetUserLogOut context }
+    dotnetDeleteUserAccount = fun loginModel -> async {return (dotnetDeleteAccount loginModel context)}
+    dotnetChangeUserParameters = fun (loginModel,userParam,input) -> async { return dotnetChangeUserParams loginModel userParam input context }
+}
+
+
+let adminSecureApi (context: HttpContext) = {
+    dotnetGetAllUsers = fun () -> async { return dotnetGetAllUsers context}
+    adminRegisterUser = fun (registerModel,userRole) -> async { return adminUserRegistration registerModel userRole context}
+    adminDeleteAccount = fun (loginModel,user) -> async { return adminDeleteAccount loginModel user context }
+    adminChangeUserParameters = fun (loginModel,userInput,userParam,input) -> async { return adminChangeUserParams loginModel userInput userParam input context }
+}
+
 
 
 // exmp http://localhost:8080/api/ICounterApi/initialCounter
@@ -116,13 +99,6 @@ let oauthApi (context: HttpContext) = {
 let webApp =
 
     let userApi =
-        Remoting.createApi()
-        |> Remoting.withRouteBuilder Route.builder
-        |> Remoting.fromValue counterApi
-        |> Remoting.withDiagnosticsLogger (printfn "%s")
-        |> Remoting.buildHttpHandler
-
-    let dotnetServiceApi =
         Remoting.createApi()
         |> Remoting.withRouteBuilder Route.builder
         |> Remoting.fromContext dotnetApi
@@ -158,22 +134,13 @@ let webApp =
             setStatusCode 401 >=> text "Access Denied"
         )
 
-    let oAuthApi =
-        Remoting.createApi()
-        |> Remoting.withRouteBuilder Route.builder
-        |> Remoting.fromContext oauthApi
-        |> Remoting.withDiagnosticsLogger (printfn "%s")
-        |> Remoting.buildHttpHandler
-
     router {
         not_found_handler (setStatusCode 404 >=> text "Not Found")
         forward "/api/testing" (text "hello")
-        forward "/api/google-auth" googleAuth
-        forward "/api/github-auth" gitHubAuth
-        forward "/api/logout-g" (signOut "Cookies")
-        forward "" dotnetServiceApi
+        forward "/api/google-auth" OAuth.googleAuth
+        forward "/api/github-auth" OAuth.gitHubAuth
+        forward "/api/logout" (signOut "Cookies")
         forward "" userApi
-        forward "" oAuthApi
         forward "" (mustBeLoggedIn >=> dotnetSecureApi)
         forward "" (mustBeLoggedIn >=> mustBeUserManager >=> adminSecureApi)
     }
@@ -223,11 +190,16 @@ let configureServices (services : IServiceCollection) =
             fun options -> 
                 options.LogoutPath <- PathString "/api/logout-g"
             )
+
+        // source: https://www.eelcomulder.nl/2018/06/12/secure-your-giraffe-application-with-an-oauth-provider/
+        // https://developers.google.com/identity/protocols/OAuth2
         .AddGoogle("Google",
             fun options ->
                 options.ClientId <- testGoogleId
                 options.ClientSecret <- testGoogleSecret
         )
+        // source: https://github.com/SaturnFramework/Saturn/blob/master/src/Saturn.Extensions.Authorization/OAuth.fs
+        // https://github.com/settings/developers
         .AddOAuth("GitHub",
             fun (options:OAuth.OAuthOptions) ->
                 options.ClientId <- testGithubId
@@ -259,6 +231,7 @@ let configureServices (services : IServiceCollection) =
                       Task.Factory.StartNew(fun () -> tsk.Result)
         )
         |> ignore
+    //adds authentification for normal Asp.net core identity model
     services.AddAuthentication(
         fun options ->
             options.DefaultAuthenticateScheme <- IdentityConstants.ApplicationScheme
