@@ -11,7 +11,6 @@ open Client.Types
 open Client.State
 open Client.View
 
-
 let extraEle model dispatch =
     match model.ExtraReactElement with
     | EmptyElement -> emptyStr

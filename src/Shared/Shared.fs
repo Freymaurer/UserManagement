@@ -2,7 +2,6 @@ namespace Shared
 
 type Counter = { Value : int }
 
-
 type ActiveUserRoles =
 | Developer
 | Admin

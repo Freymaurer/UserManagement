@@ -170,7 +170,7 @@ let externalLoginCallback : HttpHandler =
                 return! next ctx
         }
 
-let addUsernameToExtLoginFunc (username:string) (ctx:HttpContext) = 
+let addUsernameToExtLoginFunc (username:string) (ctx:HttpContext) =
     task {
         let userManager = ctx.GetService<UserManager<IdentityUser>>()
         let! user = userManager.GetUserAsync(ctx.User)
@@ -250,7 +250,6 @@ let webApp =
         |> Remoting.fromContext adminSecureApi
         |> Remoting.withDiagnosticsLogger (printfn "%s")
         |> Remoting.buildHttpHandler
-
 
     let mustBeLoggedIn : HttpHandler =
         requiresAuthentication (
@@ -332,7 +331,7 @@ let configureServices (services : IServiceCollection) =
             options.DefaultChallengeScheme <- "Google"
         )
         .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme,
-            fun options -> 
+            fun options ->
                 options.LogoutPath <- PathString "/api/logout"
             )
         // source: https://www.eelcomulder.nl/2018/06/12/secure-your-giraffe-application-with-an-oauth-provider/
@@ -358,8 +357,8 @@ let configureServices (services : IServiceCollection) =
             fun (options:OAuth.OAuthOptions) ->
                 options.ClientId <- testGithubId
                 options.ClientSecret <- testGithubSecret
-                options.CallbackPath <- new PathString("/signin-github") 
- 
+                options.CallbackPath <- new PathString("/signin-github")
+
                 options.AuthorizationEndpoint <- "https://github.com/login/oauth/authorize"
                 options.TokenEndpoint <- "https://github.com/login/oauth/access_token"
                 options.UserInformationEndpoint <- "https://api.github.com/user"
@@ -397,7 +396,7 @@ let configureServices (services : IServiceCollection) =
                 options.ClientSecret <- testOrcidSecret
                 options.CallbackPath <- new PathString("/signin-orcid")
                 options.Scope.Add "/authenticate"//"openid" ///"/read-limited" needs member api - 6.5k annual
-                
+
                 options.AuthorizationEndpoint <- "https://orcid.org/oauth/authorize"
                 options.TokenEndpoint <- "https://orcid.org/oauth/token"
                 /////the outcommented code needs the "openid" scope
@@ -431,7 +430,7 @@ let configureServices (services : IServiceCollection) =
                         Task.Factory.StartNew(fun () -> tsk.Result)
         )
         |> ignore
-        
+
     //adds authentification for normal Asp.net core identity model
     services.AddAuthentication(
         fun options ->

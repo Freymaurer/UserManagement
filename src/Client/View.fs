@@ -125,7 +125,7 @@ let addUsernameToExtLoginModal model dispatch =
                     ]
                 ]
             ]
-        ] 
+        ]
     ]
 
 let registerModal (model : Model) (dispatch : Msg -> unit) =
@@ -183,7 +183,7 @@ let registerModal (model : Model) (dispatch : Msg -> unit) =
                     ]
                 ]
             ]
-        ] 
+        ]
     ]
 
 let verifyLoginModal (model : Model) (extraElement: (Model -> (Msg -> unit) -> ReactElement)) (dispatch : Msg -> unit) msgInput =
@@ -238,7 +238,7 @@ let verifyLoginModal (model : Model) (extraElement: (Model -> (Msg -> unit) -> R
                     ]
                 ]
             ]
-        ] 
+        ]
     ]
 
 let adminRegisterModal model dispatch =
@@ -316,7 +316,7 @@ let adminRegisterModal model dispatch =
                     ]
                 ]
             ]
-        ] 
+        ]
     ]
 
 let safeComponents =
@@ -372,7 +372,7 @@ let loginNavbar (model : Model) (dispatch : Msg -> unit) = [
             ]
         ] []
     ]
-    Navbar.Item.div [ ] [ 
+    Navbar.Item.div [ ] [
         Heading.h2 [ ] [ str "SAFE Template - Login" ]
     ]
     Navbar.End.a [ ] [
@@ -447,7 +447,7 @@ let loginNavbar (model : Model) (dispatch : Msg -> unit) = [
                         ]
                     ]
                     Navbar.Item.Modifiers [Modifier.TextColor IsInfo ]
-                    ] [ 
+                    ] [
                     Text.p [
                         Modifiers [ Modifier.TextAlignment (Screen.All,TextAlignment.Centered) ];
                         Props [ Style [ TextAlign TextAlignOptions.Center; Width "90%" ] ]
@@ -501,12 +501,11 @@ let loggedInNavbar (model : Model) (dispatch : Msg -> unit) =
         ]
     ]
 
-
 let welcomeElement model dispatch =
     Hero.hero [
         Hero.Props [
             Style [
-                BackgroundImage @"linear-gradient(rgba(0, 0, 0, 0.0), rgba(0, 0, 0, 0.0)), url('https://www.tokkoro.com/picsup/2602833-minimalism-wallpaper-hd-windows.jpg')" 
+                BackgroundImage @"linear-gradient(rgba(0, 0, 0, 0.0), rgba(0, 0, 0, 0.0)), url('https://www.tokkoro.com/picsup/2602833-minimalism-wallpaper-hd-windows.jpg')"
                 BackgroundPosition "center"
                 BackgroundSize "contain"
             ]
@@ -525,8 +524,7 @@ let welcomeElement model dispatch =
         ]
     ]
 
-
-let counter model dispatch = 
+let counter model dispatch =
       Container.container [ Container.Props [ Style [MarginTop "1rem"] ] ] [
         Column.column [Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Centered)]][
             Heading.h6 [] [ str "Welcome! This is currently a placeholder Welcome-Screen. Please login to access user management functions." ]
@@ -591,7 +589,7 @@ let menuCard model dispatch =
             Position PositionOptions.Absolute;
             BackgroundColor "rgba(0, 0, 0, 0.5)"
             ZIndex "100"
-            Width "100%" 
+            Width "100%"
             Height "100%"
             Transition "Visibility"
             TransitionDuration (if model.ShowMenuBool = true then "0s" else ".50s")
@@ -724,7 +722,6 @@ let inputRoleAdmin (model:Model) dispatch =
             ]
         ]
     ]
-
 
 let userAccountElement model (dispatch : Msg -> unit) (user:User) =
     let strReactElement stringVal model dispatch =
@@ -870,7 +867,7 @@ let displayAllUsersNavbar model dispatch =
     ]]] [
         Navbar.Item.a [ Navbar.Item.Props [Style [Width "25%"]]][
             Input.search [
-                Input.Size Size.IsSmall 
+                Input.Size Size.IsSmall
                 Input.Placeholder "...search"
                 Input.Props [Style [Height "100%"]]
                 Input.OnChange (fun e -> dispatch (SortAllUserList e.Value))

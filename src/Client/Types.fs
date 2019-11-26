@@ -14,7 +14,6 @@ open Fable.FontAwesome
 
 let [<Literal>] ENTER_KEY = 13.
 
-
 type MainReactElement =
 | Welcome
 | Counter
@@ -102,7 +101,6 @@ and Msg =
     | GetExternalLoginTest of string*string
     | GetExternalLoginTestResponse of Result<string,exn>
 
-
 module ServerPath =
 
     /// when publishing to IIS, your application most likely runs inside a virtual path (i.e. localhost/SafeApp)
@@ -149,4 +147,3 @@ module Server =
         Remoting.createApi()
         |> Remoting.withRouteBuilder normalizeRoutes
         |> Remoting.buildProxy<IAdminSecureApi>
-

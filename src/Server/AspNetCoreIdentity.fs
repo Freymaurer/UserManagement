@@ -62,7 +62,7 @@ let dotnetLogin (user:LoginModel) (contextPre: HttpContext) =
         } |> fun x -> x.Result
 
 let dotnetDeleteAccount (loginModel:LoginModel) (context: HttpContext) =
-    if context.User.HasClaim (ClaimTypes.Name,loginModel.Username) 
+    if context.User.HasClaim (ClaimTypes.Name,loginModel.Username)
     then
         task {
             let signInManager = context.GetService<SignInManager<IdentityUser>>()
@@ -100,7 +100,7 @@ let adminDeleteAccount (loginModel:LoginModel) (userInput:User) (context: HttpCo
     else DeleteFail "Error 401 Access Denied"
 
 let dotnetChangeUserParams (loginModel:LoginModel) (userParameter:UserParameters) (input:string) (context: HttpContext) =
-    if context.User.HasClaim (ClaimTypes.Name,loginModel.Username) 
+    if context.User.HasClaim (ClaimTypes.Name,loginModel.Username)
     then
         task {
             let signInManager = context.GetService<SignInManager<IdentityUser>>()
@@ -165,7 +165,7 @@ let adminChangeUserParams (loginModel:LoginModel) (userInput:User) (userParamete
                 match updateResult.Succeeded with
                 | true ->
                     if loginModel.Username = userInput.Username
-                    then 
+                    then
                         let signInManager = context.GetService<SignInManager<IdentityUser>>()
                         do! signInManager.SignOutAsync()
                         let! result = signInManager.SignInAsync(user,isPersistent = true)
