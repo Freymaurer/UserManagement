@@ -1,21 +1,16 @@
-module Client.App
-
-open System
+module Client
 
 open Elmish
 open Elmish.React
 open Fable.React
+open Fable.React.Props
 open Fulma
 
+open Shared
 open Client.Types
 open Client.State
 open Client.View
-open Fable
-open Fable.React
-open Fable.React.Props
-open System.IO
 
-let path = Environment.CurrentDirectory
 
 let extraEle model dispatch =
     match model.ExtraReactElement with

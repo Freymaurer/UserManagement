@@ -1,11 +1,16 @@
 open System
 open System.IO
+open System.Threading.Tasks
+
+open Microsoft.AspNetCore.Builder
+open Microsoft.Extensions.DependencyInjection
+open FSharp.Control.Tasks.V2
+open Giraffe
 open Saturn
 open Shared
 
 open Fable.Remoting.Server
 open Fable.Remoting.Giraffe
-open Giraffe
 
 open Microsoft.AspNetCore.Identity
 open Microsoft.Extensions.DependencyInjection
@@ -23,13 +28,6 @@ open System.Text.Json
 open System.Threading.Tasks
 
 open AspNetCoreIdentity
-open Microsoft.AspNetCore.Mvc
-
-module OAuthSigninPaths =
-
-    let googleOAuth = "/api/google-auth"
-    let githubOAuth = "/api/github-auth"
-    let orcidOAuth = "/api/orcid-auth"
 
 let tryGetEnv = System.Environment.GetEnvironmentVariable >> function null | "" -> None | x -> Some x
 
@@ -39,12 +37,16 @@ let port =
     "SERVER_PORT"
     |> tryGetEnv |> Option.map uint16 |> Option.defaultValue 8085us
 
+module OAuthSigninPaths =
+
+    let googleOAuth = "/api/google-auth"
+    let githubOAuth = "/api/github-auth"
+    let orcidOAuth = "/api/orcid-auth"
+
 let nice() =
     { Value = 69 }
 
 let userHandler (ctx: HttpContext) =
-    //let nameClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Name)
-    //let emailClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Email)
     let testing =
         ctx.User.Claims
         |> Seq.map (fun x -> sprintf "%s ->> %s <br><br>" x.Type x.Value)

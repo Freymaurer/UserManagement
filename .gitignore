@@ -14,4 +14,3 @@ release.sh
 *.DotSettings.user
 deploy
 .ionide/
-/.paket/load

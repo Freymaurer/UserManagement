@@ -2,6 +2,7 @@ namespace Shared
 
 type Counter = { Value : int }
 
+
 type ActiveUserRoles =
 | Developer
 | Admin
@@ -70,6 +71,8 @@ module Route =
     let builder typeName methodName =
         sprintf "/api/%s/%s" typeName methodName
 
+/// A type that specifies the communication protocol between client and server
+/// to learn more, read the docs at https://zaid-ajaj.github.io/Fable.Remoting/src/basics.html
 /// A type that specifies the communication protocol between client and server
 /// to learn more, read the docs at https://zaid-ajaj.github.io/Fable.Remoting/src/basics.html
 type IUserApi = {
