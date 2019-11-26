@@ -24,6 +24,7 @@ let extraEle model dispatch =
     | AdminRegisterModal -> adminRegisterModal model dispatch
     | Message x -> messageContainer x (fun _ -> dispatch (UpdateExtraElement EmptyElement))
     | VerifyLoginModal (x,ele) -> verifyLoginModal model ele dispatch x
+    | AddUsernameToExternLoginModal -> addUsernameToExtLoginModal model dispatch
 
 let view (model : Model) (dispatch : Msg -> unit) =
     div [ ] [
@@ -40,7 +41,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
             | UserList -> displayAllUsersElement model dispatch
             | _ -> constructionLabel model dispatch
         )
-        Button.button [Button.OnClick (fun _ -> dispatch GetContextClaimsRequest)][str "Get Claims"]
+        //Button.button [Button.OnClick (fun _ -> dispatch GetContextClaimsRequest)][str "Get Claims"]
         Footer.footer [ ]
               [ Content.content [ Content.Modifiers [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered) ] ]
                   [ safeComponents ] ] ]

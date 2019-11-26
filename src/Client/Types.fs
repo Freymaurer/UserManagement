@@ -25,6 +25,7 @@ type ExtraReactElement =
 |EmptyElement
 |RegisterModal
 |VerifyLoginModal of Msg * (Model -> (Msg -> unit) -> ReactElement)
+|AddUsernameToExternLoginModal
 |AdminRegisterModal
 |Message of string
 
@@ -96,6 +97,10 @@ and Msg =
     | AdminDeleteAccountResponse of Result<DotnetDeleteAccountResults,exn>
     | GetContextClaimsRequest
     | GetContextClaimsResponse of Result<string,exn>
+    | AddUsernameToExtLogin of string
+    | AddUsernameToExtLoginResponse of Result<string,exn>
+    | GetExternalLoginTest of string*string
+    | GetExternalLoginTestResponse of Result<string,exn>
 
 
 module ServerPath =

@@ -73,6 +73,61 @@ let inputRegisterBox inputElement header valueOrDefault msg =
         ]
     ]
 
+let addUsernameToExtLoginModal model dispatch =
+    Modal.modal [
+        Modal.IsActive true
+        Modal.Props []
+    ] [
+        Modal.background [ Props [OnClick (fun _ -> dispatch (UpdateExtraElement EmptyElement) )] ] [ ]
+        Modal.Card.card [
+            Modifiers [ Modifier.BackgroundColor IsWhite ]
+            Props [ Style [ Height "80%";BorderRadius "15px" ] ]
+        ] [
+            Modal.Card.head [
+                Modifiers [Modifier.BackgroundColor IsWhite]
+                Props [ Style [ BorderBottom "0px"] ]
+                ] [
+                Modal.Card.title [ Props [ Style [ PaddingTop "2rem" ] ] ] [
+                    str "Create your Username"
+                ]
+            ]
+            Modal.Card.body  [ ] [
+                text [][
+                    str "Thank you for using our external login service!"
+                    str "Please enter your preferred username. It will be used to show your activities and will hold correlation to your login method."
+                ]
+                Box.box' [ Props [ Class "registerBox" ] ] [
+                    Text.div [ Props [ Style [ PaddingLeft "1rem" ] ] ] [
+                        str "Create your Username"
+                    ]
+                    Input.text [
+                        Input.OnChange (fun e ->
+                            let newModel = {model.RegisterModel with Username = e.Value}
+                            dispatch (UpdateRegisterModel newModel)
+                            )
+                        Input.Props [
+                            Style [
+                                BoxShadow "none"; Border "none";
+                                BackgroundColor "#f2f2f2"
+                            ]
+                        ]
+                    ]
+                ]
+                Columns.columns [ Columns.Props [ Style [ PaddingTop "2rem" ] ] ] [
+                    Column.column [Column.Offset (Screen.All,Column.IsHalf)] [
+                        Button.button [
+                            Button.Color IsInfo
+                            (if model.RegisterModel.Username = "" then Button.Disabled true else Button.Disabled false )
+                            Button.OnClick (fun _ -> dispatch (AddUsernameToExtLogin model.RegisterModel.Username))
+                        ][
+                            str "Register Username"
+                        ]
+                    ]
+                ]
+            ]
+        ] 
+    ]
+
 let registerModal (model : Model) (dispatch : Msg -> unit) =
     Modal.modal [
         Modal.IsActive true
@@ -253,7 +308,7 @@ let adminRegisterModal model dispatch =
                     Column.column [] [
                         Button.button [
                             Button.Color IsInfo
-                            (if model.RegisterModel.Username = "" || model.RegisterModel.Password = "" || model.RegisterModel.Email = "" then Button.Disabled true else Button.Disabled false )
+                            (if model.RegisterModel.Username = "" || model.RegisterModel.Password = "" || model.RegisterModel.Email = "" || model.AdminAssignRole = Guest then Button.Disabled true else Button.Disabled false )
                             Button.OnClick (fun _ -> dispatch (AdminRegisterUserRequest (model.RegisterModel,model.AdminAssignRole)))
                         ][
                             str "Register"
@@ -399,8 +454,9 @@ let loginNavbar (model : Model) (dispatch : Msg -> unit) = [
                         ]
                         [ str "Sign Up" ]
                     ]
-                Navbar.Item.a [Navbar.Item.Props [Href "/api/google-auth"]] [ str "Google login"]
-                Navbar.Item.a [Navbar.Item.Props [Href "/api/github-auth"]] [ str "GitHub login"]
+                Navbar.Item.a [Navbar.Item.Props [Href "/api/google-auth";Title "Login using your Google account"]] [ str "Google login"]
+                Navbar.Item.a [Navbar.Item.Props [Href "/api/github-auth";Title "Login using your Github account"]] [ str "GitHub login"]
+                Navbar.Item.a [Navbar.Item.Props [Href "/api/orcid-auth";Title "Login using your Orcid account"]] [ str "Orcid login"]
             ]
         ]
     ]
@@ -590,6 +646,14 @@ let userAccountinformationColumn headerStr informationStr msg =
         ]
     ]
 
+let guestAccountInformationColumn headerStr informationStr =
+    Columns.columns [][
+        Column.column [][
+            Heading.h5 [][str headerStr]
+            Heading.h6 [Heading.IsSubtitle][str informationStr]
+        ]
+    ]
+
 let inputUsername model dispatch =
     Container.container [][
         text [][str "Type in your new username."]
@@ -665,6 +729,8 @@ let inputRoleAdmin (model:Model) dispatch =
 let userAccountElement model (dispatch : Msg -> unit) (user:User) =
     let strReactElement stringVal model dispatch =
         str stringVal
+    let isNotGuest (userOpt: Shared.User) =
+        if userOpt.Role <> Shared.Guest then true else false
     let elementFallbackIfEmpty =
         if model.User.IsNone || model.Authenticated = false
         then [ str "Access Denied" ]
@@ -684,15 +750,15 @@ let userAccountElement model (dispatch : Msg -> unit) (user:User) =
             let extraElementRole =
                 VerifyLoginModal (AdminChangeUserParamsRequest (model.LoginModel,model.AdminViewUser.Value,Role,""), inputRoleAdmin)
             [
-                userAccountinformationColumn "Name" user.Username (fun _ -> dispatch (UpdateExtraElement extraElementUserName))
-                userAccountinformationColumn "E-Mail"user.Email (fun _ -> dispatch (UpdateExtraElement extraElementEmail))
+                (if isNotGuest user then userAccountinformationColumn "Name" user.Username (fun _ -> dispatch (UpdateExtraElement extraElementUserName)) else guestAccountInformationColumn "Name" user.Username)
+                (if isNotGuest user then userAccountinformationColumn "E-Mail" user.Email (fun _ -> dispatch (UpdateExtraElement extraElementEmail)) else guestAccountInformationColumn "E-Mail" user.Email)
                 Columns.columns [][
                     Column.column [][
                         Heading.h5 [][str "Password"]
                         Heading.h6 [Heading.IsSubtitle] [str "******"]
                     ]
                     Column.column [ Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Right)] ][
-                        Button.a [ Button.OnClick (fun _ -> dispatch (UpdateExtraElement extraElementPassword)) ][str "Change"]
+                        (if isNotGuest user then Button.a [ Button.OnClick (fun _ -> dispatch (UpdateExtraElement extraElementPassword)) ][str "Change"] else str "")
                     ]
                 ]
                 Columns.columns [][
@@ -701,7 +767,19 @@ let userAccountElement model (dispatch : Msg -> unit) (user:User) =
                         Heading.h6 [Heading.IsSubtitle][str (string user.Role)]
                     ]
                     Column.column [ Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Right)] ][
-                        (if AuxFunctions.authentificationLevelByUser model.User >= 5 then Button.a [Button.OnClick (fun _ -> dispatch (UpdateExtraElement extraElementRole))][str "Change"] else str "")
+                        (if AuxFunctions.authentificationLevelByUser model.User >= 5 && isNotGuest user then Button.a [Button.OnClick (fun _ -> dispatch (UpdateExtraElement extraElementRole))][str "Change"] else str "")
+                    ]
+                ]
+                Columns.columns [][
+                    Column.column [][
+                        Heading.h5 [][str "Account Origin"]
+                        Heading.h6 [Heading.IsSubtitle][str user.AccountOrigin]
+                    ]
+                ]
+                Columns.columns [][
+                    Column.column [][
+                        Heading.h5 [][str "Unique Identifier"]
+                        Heading.h6 [Heading.IsSubtitle][str user.UniqueId]
                     ]
                 ]
             ]
@@ -727,7 +805,7 @@ let userAccountElement model (dispatch : Msg -> unit) (user:User) =
         ]]] [
             Column.column [][
                 Heading.h6 [][str "Delete this user account"]
-                Heading.h6 [Heading.IsSubtitle] [ if user = model.User.Value then str "Once you delete your account, there is no going back. Please be certain" else str "Once you delete this account, there is no going back. Please be certain"]
+                Heading.h6 [Heading.IsSubtitle] [ (if user = model.User.Value then str "Once you delete your account, there is no going back. Please be certain" else str "Once you delete this account, there is no going back. Please be certain")]
             ]
             Column.column [Column.Width (Screen.All,Column.IsOneFifth);Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Right)]][
                 Button.button [Button.Color IsDanger;Button.OnClick deleteMsg][
@@ -756,7 +834,7 @@ let userAccountElement model (dispatch : Msg -> unit) (user:User) =
     div [Style [MarginTop "5%";MarginBottom "5%"]][
         Column.column [ Column.Width (Screen.All,Column.IsHalf);Column.Offset (Screen.All,Column.IsOneQuarter) ][
             Box.box' [Props[Style[Padding "5% 5% 5% 5%"]]]
-                (elementFallbackIfEmpty@[dangerZone])
+                (if isNotGuest user then (elementFallbackIfEmpty@[dangerZone]) else (elementFallbackIfEmpty@[str ""]))
             backButtonRequest
         ]
     ]

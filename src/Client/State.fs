@@ -69,7 +69,12 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         let nextModel = { currentModel with Counter = Some initialCount; Loading = false }
         nextModel, Cmd.none
     | _, InitialUserLoaded initialUser ->
-        let nextModel = { currentModel with User = Some initialUser; Loading = false;Authenticated = true }
+        let nextModel =
+            if initialUser.ExtLogin.IsTrue && initialUser.ExtLogin.IsUsernameSet = false
+            then
+                { currentModel with User = Some initialUser; Loading = false;Authenticated = false; ExtraReactElement = AddUsernameToExternLoginModal }
+            else
+                { currentModel with User = Some initialUser; Loading = false;Authenticated = true }
         nextModel, Cmd.none
         /// Menu Management Functions
     | _, ClearRegisterLogin ->
@@ -238,13 +243,23 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 (Error >> DotnetGetUserResponse)
         currentModel, cmd
     | _, DotnetGetUserResponse (Ok value) ->
-        let nextModel = {
-            currentModel with
-                //ExtraReactElement = Message "Getting User Information was successful"
-                Authenticated = true
-                User = Some value
-                Loading = false
-        }
+        let nextModel =
+            if value.ExtLogin.IsTrue && value.ExtLogin.IsUsernameSet = false
+            then {
+                currentModel with
+                    //ExtraReactElement = Message "Getting User Information was successful"
+                    Authenticated = true
+                    User = Some value
+                    Loading = false
+                    ExtraReactElement = AddUsernameToExternLoginModal
+                }
+            else {
+                currentModel with
+                    //ExtraReactElement = Message "Getting User Information was successful"
+                    Authenticated = true
+                    User = Some value
+                    Loading = false
+                }
         nextModel,Cmd.none
     | _, DotnetGetUserResponse (Error e) ->
         let nextModel = {
@@ -525,6 +540,27 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ExtraReactElement = Message e.Message
         }
         nextModel, Cmd.none
+    | _, AddUsernameToExtLogin (username) ->
+        let nextModel = { currentModel with Loading = true }
+        let cmd =
+            Cmd.OfAsync.either
+                Server.dotnetSecureApi.addUsernameToExtLogin
+                (username)
+                (Ok >> AddUsernameToExtLoginResponse)
+                (Error >> AddUsernameToExtLoginResponse)
+        nextModel,cmd
+    | _, AddUsernameToExtLoginResponse (Ok value) ->
+        init()
+    | _, AddUsernameToExtLoginResponse (Error e) ->
+        let nextModel = { currentModel with Loading = false; ExtraReactElement = Message e.Message}
+        nextModel, Cmd.none
+    | _, GetExternalLoginTest (scheme,redirectUri) ->
+        let cmd =
+            Cmd.OfAsync.perform
+                Server.userApi.externalLoginTest
+                (scheme,redirectUri)
+                (Debug)
+        currentModel,cmd
     | _, Debug (message) ->
         { currentModel with ErrorMsg = Some message}, Cmd.none
     | _ -> currentModel, Cmd.none

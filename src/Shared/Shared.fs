@@ -10,10 +10,18 @@ type ActiveUserRoles =
 | Guest
 | All
 
+type ExternalLogin = {
+    IsTrue : bool
+    IsUsernameSet : bool
+    }
+
 type User = {
     Username : string
     Email : string
     Role : ActiveUserRoles
+    AccountOrigin : string
+    UniqueId : string
+    ExtLogin : ExternalLogin
 }
 
 type UserParameters =
@@ -53,6 +61,10 @@ type DotnetChangeParameterResults =
 | ChangeParamSuccess of string
 | ChangeParamFail of string
 
+type ExternalLoginResults =
+| ExternalLoginSuccess
+| ExternalLoginFail of string
+
 module Route =
     /// Defines how routes are generated on server and mapped from client
     let builder typeName methodName =
@@ -65,6 +77,7 @@ type IUserApi = {
     dotnetRegister : RegisterModel -> Async<DotnetRegisterResults>
     getContextClaims : unit -> Async<string>
     initialCounter : unit -> Async<Counter>
+    externalLoginTest : string*string -> Async<string>
 }
 
 type IDotnetSecureApi = {
@@ -73,6 +86,7 @@ type IDotnetSecureApi = {
     dotnetUserLogOut : unit -> Async<DotnetLogOutResults>
     dotnetDeleteUserAccount : LoginModel -> Async<DotnetDeleteAccountResults>
     dotnetChangeUserParameters : LoginModel * UserParameters * string -> Async<DotnetChangeParameterResults>
+    addUsernameToExtLogin : string -> Async<string>
 }
 
 type IAdminSecureApi = {

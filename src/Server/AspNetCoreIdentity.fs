@@ -11,19 +11,25 @@ open FSharp.Control.Tasks
 open System.Security.Claims
 open System.Text
 
-let isGoogleUser (context: HttpContext) =
-    context.User.Claims
-        |> Seq.exists (
-            fun claim ->
-                claim.Issuer = "Google"
-        )
+module CustomClaims =
+    let LoginMethod = "LoginMethod"
+    let IsUsernameSet = "IsUsernameSet"
 
-let isGitHubUser (context: HttpContext) =
-    context.User.Claims 
-        |> Seq.exists (
-            fun claim ->
-                claim.Issuer = "GitHub"
-        )
+module LoginMethods =
+    let LocalAuthority = "LOCAL AUTHORITY"
+    let Github = "GitHub"
+    let Google = "Google"
+
+let checkAccountOrigin (ctx: HttpContext) =
+    let checkOAuth = ctx.User.HasClaim (fun c -> c.Type = CustomClaims.LoginMethod && c.Value = LoginMethods.LocalAuthority)
+    if checkOAuth = true
+    then LoginMethods.LocalAuthority
+    else
+        ctx.User.Claims
+        |> Seq.map (fun x -> x.Issuer)
+        |> Seq.filter (fun x -> x <> LoginMethods.LocalAuthority)
+        |> Seq.groupBy (fun x -> x)
+        |> fun x -> if Seq.length x > 1 then failwith "Unknown Claims issuer!" else x |> (Seq.head >> fst)
 
 let showErrors (errors : IdentityError seq) =
     errors
@@ -170,41 +176,17 @@ let adminChangeUserParams (loginModel:LoginModel) (userInput:User) (userParamete
         } |> fun x -> x.Result
     else ChangeParamFail "Error 401 Access Denied; 00"
 
-let googleUserHandler (ctx: HttpContext) =
-    let nameClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Name)
-    let emailClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Email)
-    if ctx.User.Identity.IsAuthenticated
-    then
-        {Username = nameClaim.Value; Email = emailClaim.Value; Role = Guest}
-    else
-        failwith "googleUserHandler returned an error. User not authenticated."
-
-let gitHubUserHandler (ctx: HttpContext) =
-    let nameClaim = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Name)
-    let emailClaim =
-        if ctx.User.HasClaim (fun c -> c.Type = ClaimTypes.Email)
-        then ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Email) |> fun x -> x.Value
-        else "Not puplicly available. If you want to portray your Email you need to change your GitHub account settings."
-    if ctx.User.Identity.IsAuthenticated
-    then
-        {Username = nameClaim.Value; Email = emailClaim; Role = Guest}
-    else
-        failwith "googleUserHandler returned an error. User not authenticated."
-
 let dotnetGetUser (context: HttpContext) =
-    
-    if isGoogleUser context
-    then
-        googleUserHandler context
-    elif isGitHubUser context
-    then gitHubUserHandler context
-    else 
         task {
             let userManager = context.GetService<UserManager<IdentityUser>>()
             let! user = userManager.GetUserAsync context.User
-            let! getRole= (userManager.GetClaimsAsync(user))
-            let role = getRole |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Shared.AuxFunctions.stringToRoles)
-            return { Username = user.UserName; Email = user.Email; Role = role }
+            let claims = (userManager.GetClaimsAsync(user)) |> fun x -> x.Result |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq
+            let extLogin =
+                claims |> List.tryFind (fun (claimType,value) -> claimType = CustomClaims.IsUsernameSet)
+                |> fun x -> if x.IsSome then { IsTrue = true; IsUsernameSet = bool.Parse(x.Value |> snd) } else { IsTrue = false; IsUsernameSet = true }
+            let role = claims |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Shared.AuxFunctions.stringToRoles)
+            let origin = claims |> List.find (fun (claimType,value) -> claimType = CustomClaims.LoginMethod) |> snd
+            return { Username = user.UserName; Email = user.Email; Role = role; AccountOrigin = origin; UniqueId = user.Id; ExtLogin = extLogin }
         } |> fun x -> x.Result
 
 let dotnetGetAllUsers (context: HttpContext) =
@@ -215,12 +197,19 @@ let dotnetGetAllUsers (context: HttpContext) =
             userList
             |> Array.map (
                 fun x ->
-                    let getRole = (userManager.GetClaimsAsync(x))
-                    let role = getRole.Result |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Shared.AuxFunctions.stringToRoles)
+                    let claims = userManager.GetClaimsAsync(x) |> fun x -> x.Result |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq
+                    let role = claims |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Shared.AuxFunctions.stringToRoles)
+                    let origin = claims |> List.find (fun (claimType,value) -> claimType = CustomClaims.LoginMethod) |> snd
+                    let extLogin =
+                        claims |> List.tryFind (fun (claimType,value) -> claimType = ClaimTypes.NameIdentifier)
+                        |> fun x -> if x.IsSome then { IsTrue = true; IsUsernameSet = bool.Parse(x.Value |> snd) } else { IsTrue = false; IsUsernameSet = true }
                     {
                         Username = x.UserName;
                         Email = x.Email;
                         Role = role
+                        AccountOrigin = origin
+                        UniqueId = x.Id
+                        ExtLogin = extLogin
                     }
                 )
         return createUser
@@ -247,7 +236,8 @@ let dotnetRegistration (registerModel:RegisterModel) (context: HttpContext) =
         | false -> return (RegisterFail (showErrors result.Errors))
         | true  ->
             let! addingClaims = userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, "User"))
-            let! addingClaims2 = userManager.AddClaimAsync(user, new Claim(ClaimTypes.AuthenticationMethod, "Registration"))
+            let! addingClaims2 =
+                userManager.AddClaimAsync(user, new Claim(CustomClaims.LoginMethod, LoginMethods.LocalAuthority))
             match addingClaims.Succeeded,addingClaims2.Succeeded with
             | false,false -> return (RegisterFail (showErrors result.Errors))
             | true,true  ->
@@ -259,7 +249,7 @@ let dotnetRegistration (registerModel:RegisterModel) (context: HttpContext) =
 
 let adminUserRegistration (registerModel:RegisterModel) (role:ActiveUserRoles) (context: HttpContext) =
     if role = Developer || role = Guest
-    then RegisterFail "Error 401 Access Denied"
+    then RegisterFail "Cannot create a new user with the given role."
     else
         task {
             let  user        = IdentityUser(UserName = registerModel.Username, Email = registerModel.Email)
@@ -269,7 +259,7 @@ let adminUserRegistration (registerModel:RegisterModel) (role:ActiveUserRoles) (
             | false -> return (RegisterFail (showErrors result.Errors))
             | true  ->
                 let! addingClaims = userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, string role))
-                let! addingClaims2 = userManager.AddClaimAsync(user, new Claim(ClaimTypes.AuthenticationMethod, "Registration"))
+                let! addingClaims2 = userManager.AddClaimAsync(user, new Claim(CustomClaims.LoginMethod, LoginMethods.LocalAuthority))
                 match addingClaims.Succeeded,addingClaims2.Succeeded with
                 | false,false -> return (RegisterFail (showErrors result.Errors))
                 | true,true  ->
