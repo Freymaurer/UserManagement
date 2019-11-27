@@ -174,10 +174,9 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                     ExtraReactElement = Message x
                     RegisterModel = {currentModel.RegisterModel with Password = ""}
                 } , Cmd.none
-            | RegisterSuccess x ->
+            | RegisterSuccess ->
                 { currentModel with
                     Loading = false
-                    ExtraReactElement = Message x
                 }, Cmd.ofMsg DotnetGetUserRequest
         nextModel, cmd
     | _, DotnetRegisterResponse (Error e) ->
@@ -214,10 +213,9 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
     | _ , DotnetLoginResponse (Result.Ok value) ->
         let (nextModel,cmd) =
             match value with
-            | LoginSuccess msg ->
+            | LoginSuccess ->
                 {
                     currentModel with
-                        ErrorMsg = Some msg
                         Loading = false
                         MainReactElement = Counter
                         LoginModel = {Username = ""; Password = ""}
@@ -337,11 +335,10 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         nextModel, cmd
     | _, DotnetChangeUserParamResponse (Ok value) ->
         match value with
-        | ChangeParamSuccess str ->
+        | ChangeParamSuccess ->
             let nextModel = {
                 currentModel with
                     Loading = false
-                    ExtraReactElement = Message str
                     LoginModel = {Username = ""; Password = ""}
                     MainReactElement = Counter
                 }
@@ -373,11 +370,16 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         }
         nextModel, cmd
     | _, DeleteAccountResponse (Ok value) ->
-        let initModel,initCmd = init()
+        let initModel,_ = init()
+        let initCmd =
+            Cmd.OfAsync.perform
+                Server.userApi.initialCounter
+                ()
+                InitialCountLoaded
         let nextModel,cmd =
             match value with
-            | DeleteSuccess str ->
-                {initModel with ExtraReactElement = Message str}, initCmd
+            | DeleteSuccess ->
+                {initModel with ExtraReactElement = Message (sprintf "Account and all related information was deleted! If you were unhappy with our service please tell us about it at %s" ServiceHelpers.ServiceMail)}, initCmd
             | DeleteFail str ->
                 Browser.Dom.window.alert ("You tried deleting the account and it failed. For security reasons you were logged out. " + str)
                 currentModel, Cmd.ofMsg DotnetLogOutRequest
@@ -438,10 +440,9 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                     ExtraReactElement = Message x
                     RegisterModel = {currentModel.RegisterModel with Password = ""}
                 } , Cmd.none
-            | RegisterSuccess x ->
+            | RegisterSuccess ->
                 { currentModel with
                     Loading = false
-                    ExtraReactElement = Message x
                 }, Cmd.ofMsg AdminGetAllUsersRequest
         nextModel, cmd
     | _, AdminRegisterUserResponse (Error e) ->
@@ -467,11 +468,10 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         nextModel, cmd
     | _, AdminChangeUserParamsResponse (Ok value) ->
         match value with
-        | ChangeParamSuccess str ->
+        | ChangeParamSuccess ->
             let nextModel = {
                 currentModel with
                     Loading = false
-                    ExtraReactElement = Message (str + "Account Parameter successfully changed")
                     MainReactElement = UserList
                     LoginModel = {Username = "";Password = ""}
             }
@@ -507,8 +507,8 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
     | _, AdminDeleteAccountResponse (Ok value) ->
         let nextModel,cmd =
             match value with
-            | DeleteSuccess str ->
-                {currentModel with ExtraReactElement = Message str; MainReactElement = UserList}, Cmd.ofMsg AdminGetAllUsersRequest
+            | DeleteSuccess ->
+                {currentModel with MainReactElement = UserList}, Cmd.ofMsg AdminGetAllUsersRequest
             | DeleteFail str ->
                 Browser.Dom.window.alert ("You tried deleting the account and it failed. For security reasons you were logged out. " + str)
                 currentModel, Cmd.ofMsg DotnetLogOutRequest

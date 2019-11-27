@@ -57,7 +57,7 @@ let dotnetLogin (user:LoginModel) (contextPre: HttpContext) =
             let! result = signInManager.PasswordSignInAsync(user.Username, user.Password, true, false)
             match result.Succeeded with
             | true ->
-               return LoginSuccess (result.ToString())
+               return LoginSuccess
             | false -> return LoginFail (result.ToString())
         } |> fun x -> x.Result
 
@@ -73,7 +73,7 @@ let dotnetDeleteAccount (loginModel:LoginModel) (context: HttpContext) =
                 let! user = userManager.GetUserAsync context.User
                 let! deleteResult = userManager.DeleteAsync user
                 match deleteResult.Succeeded with
-                | true -> return DeleteSuccess (deleteResult.ToString())
+                | true -> return DeleteSuccess
                 | false -> return DeleteFail (deleteResult.Errors |> Seq.map (fun  x-> x.Code + " - " + x.Description) |> String.concat ". ")
             | false -> return DeleteFail "Error 401 Access Denied"
         } |> fun x -> x.Result
@@ -93,7 +93,7 @@ let adminDeleteAccount (loginModel:LoginModel) (userInput:User) (context: HttpCo
                 let user = if findByName = findByEmail then findByName else failwith "Username and Email do not correlate"
                 let! deleteResult = userManager.DeleteAsync user
                 match deleteResult.Succeeded with
-                | true -> return DeleteSuccess (deleteResult.ToString())
+                | true -> return DeleteSuccess
                 | false -> return DeleteFail (deleteResult.Errors |> Seq.map (fun  x-> x.Code + " - " + x.Description) |> String.concat ". ")
             | false -> return DeleteFail "Error 401 Access Denied"
         } |> fun x -> x.Result
@@ -124,7 +124,7 @@ let dotnetChangeUserParams (loginModel:LoginModel) (userParameter:UserParameters
                     let signInManager = context.GetService<SignInManager<IdentityUser>>()
                     do! signInManager.SignOutAsync()
                     let! result = signInManager.SignInAsync(user,isPersistent = true)
-                    return ChangeParamSuccess (updateResult.ToString())
+                    return ChangeParamSuccess
                 | false -> return ChangeParamFail (updateResult.Errors |> Seq.map (fun  x-> x.Code + " - " + x.Description) |> String.concat ". ")
             | false -> return ChangeParamFail "Error 401 Access Denied"
         } |> fun x -> x.Result
@@ -169,8 +169,8 @@ let adminChangeUserParams (loginModel:LoginModel) (userInput:User) (userParamete
                         let signInManager = context.GetService<SignInManager<IdentityUser>>()
                         do! signInManager.SignOutAsync()
                         let! result = signInManager.SignInAsync(user,isPersistent = true)
-                        return ChangeParamSuccess (updateResult.ToString())
-                    else return ChangeParamSuccess (updateResult.ToString())
+                        return ChangeParamSuccess
+                    else return ChangeParamSuccess
                 | false -> return ChangeParamFail (updateResult.Errors |> Seq.map (fun  x-> x.Code + " - " + x.Description) |> String.concat ". ")
             | false -> return ChangeParamFail "Error 401 Access Denied"
         } |> fun x -> x.Result
@@ -224,7 +224,7 @@ let dotnetUserLogOut (context: HttpContext) =
     task {
         let signInManager = (prevSignOut context).GetService<SignInManager<IdentityUser>>()
         do! signInManager.SignOutAsync()
-        return LogoutSuccess "Log Out Success"
+        return LogoutSuccess
     } |> fun x -> x.Result
 
 let dotnetRegistration (registerModel:RegisterModel) (context: HttpContext) =
@@ -243,7 +243,7 @@ let dotnetRegistration (registerModel:RegisterModel) (context: HttpContext) =
             | true,true  ->
                 let signInManager = context.GetService<SignInManager<IdentityUser>>()
                 do! signInManager.SignInAsync(user, true)
-                return RegisterSuccess "Registration Successful"
+                return RegisterSuccess
             | _,_ -> return (RegisterFail (showErrors result.Errors))
     } |> fun x -> x.Result
 
@@ -263,6 +263,6 @@ let adminUserRegistration (registerModel:RegisterModel) (role:ActiveUserRoles) (
                 match addingClaims.Succeeded,addingClaims2.Succeeded with
                 | false,false -> return (RegisterFail (showErrors result.Errors))
                 | true,true  ->
-                    return RegisterSuccess "Registration Successful"
+                    return RegisterSuccess
                 | _,_ -> return (RegisterFail (showErrors result.Errors))
         } |> fun x -> x.Result

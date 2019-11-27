@@ -2,6 +2,11 @@ namespace Shared
 
 type Counter = { Value : int }
 
+module ServiceHelpers =
+
+    let ServiceMail = "Example@email.de"
+
+// allowed roles a user could have
 type ActiveUserRoles =
 | Developer
 | Admin
@@ -15,6 +20,7 @@ type ExternalLogin = {
     IsUsernameSet : bool
     }
 
+
 type User = {
     Username : string
     Email : string
@@ -24,6 +30,7 @@ type User = {
     ExtLogin : ExternalLogin
 }
 
+// used to determine which account value to change, e.g. when calling "dotnetChangeUserParameters"
 type UserParameters =
 |Username
 |Password
@@ -41,27 +48,29 @@ type RegisterModel = {
     Email : string
 }
 
+// server responses
+
 type DotnetLoginResults =
-| LoginSuccess of string
+| LoginSuccess
 | LoginFail of string
 
 type DotnetLogOutResults =
-| LogoutSuccess of string
+| LogoutSuccess
 | LogoutFail of string
 
 type DotnetRegisterResults =
-| RegisterSuccess of string
+| RegisterSuccess
 | RegisterFail of string
 
 type DotnetDeleteAccountResults =
-| DeleteSuccess of string
+| DeleteSuccess
 | DeleteFail of string
 
 type DotnetChangeParameterResults =
-| ChangeParamSuccess of string
+| ChangeParamSuccess
 | ChangeParamFail of string
 
-type ExternalLoginResults =
+type DotnetExternalLoginResults =
 | ExternalLoginSuccess
 | ExternalLoginFail of string
 

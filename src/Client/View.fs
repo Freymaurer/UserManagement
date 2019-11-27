@@ -22,6 +22,31 @@ let onEnter msg dispatch =
 
 let emptyStr = str ""
 
+/// https://codepen.io/davidelrizzo/pen/vEYvyv
+let googleOAuthButton =
+    div [ Props.Class "loginBtn loginBtn--google" ] [
+        str "Sign in with Google"
+        a [Href "/api/google-auth"][
+            span [ Class "divToLinkEmptySpan" ] []
+        ]
+    ]
+
+let githubOAuthButton =
+    div [ Props.Class "loginBtn loginBtn--github"][
+        str "Sign in with GitHub"
+        a [ Href "/api/github-auth" ][
+            span [ Class "divToLinkEmptySpan" ] []
+        ]
+    ]
+
+let orcidOAuthButton =
+    div [ Props.Class "loginBtn loginBtn--orcid"][
+        str "Sign in with Orcid"
+        a [ Href "/api/orcid-auth" ][
+            span [ Class "divToLinkEmptySpan" ] []
+        ]
+    ]
+
 let messageContainer (content:string) msg =
     Container.container [ Container.Props [Style [MarginTop "2%"]]] [
         Columns.columns [ Columns.IsCentered ][
@@ -378,6 +403,7 @@ let loginNavbar (model : Model) (dispatch : Msg -> unit) = [
     Navbar.End.a [ ] [
         Navbar.Item.a [
             Navbar.Item.IsHoverable;
+            //Navbar.Item.IsActive true
             Navbar.Item.HasDropdown;
             Navbar.Item.Props [Style [MarginRight "2rem"] ]
         ] [
@@ -454,9 +480,16 @@ let loginNavbar (model : Model) (dispatch : Msg -> unit) = [
                         ]
                         [ str "Sign Up" ]
                     ]
-                Navbar.Item.a [Navbar.Item.Props [Href "/api/google-auth";Title "Login using your Google account"]] [ str "Google login"]
-                Navbar.Item.a [Navbar.Item.Props [Href "/api/github-auth";Title "Login using your Github account"]] [ str "GitHub login"]
-                Navbar.Item.a [Navbar.Item.Props [Href "/api/orcid-auth";Title "Login using your Orcid account"]] [ str "Orcid login"]
+                Navbar.divider [] []
+                div [ Style [ Width "100%"; AlignContent AlignContentOptions.Center ] ] [
+                    googleOAuthButton
+                ]
+                div [ Style [ Width "100%"; AlignContent AlignContentOptions.Center ] ] [
+                    githubOAuthButton
+                ]
+                div [ Style [ Width "100%"; AlignContent AlignContentOptions.Center ] ] [
+                    orcidOAuthButton
+                ]
             ]
         ]
     ]
