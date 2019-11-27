@@ -3,14 +3,7 @@ module Client.State
 open System
 
 open Elmish
-open Elmish.React
-open Fable.React
-open Fable.React.Props
-open Fulma
-open Thoth.Json
-open Fable.Core
 open Shared
-open Fable.FontAwesome
 
 open Client.Types
 
@@ -520,6 +513,26 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 LoginModel = {Username = ""; Password = ""}
         }
         nextModel,Cmd.none
+    | _, AddUsernameToExtLogin (username) ->
+        let nextModel = { currentModel with Loading = true }
+        let cmd =
+            Cmd.OfAsync.either
+                Server.dotnetSecureApi.addUsernameToExtLogin
+                (username)
+                (Ok >> AddUsernameToExtLoginResponse)
+                (Error >> AddUsernameToExtLoginResponse)
+        nextModel,cmd
+    | _, AddUsernameToExtLoginResponse (Ok value) ->
+        match value with
+        | ChangeParamSuccess ->
+            init()
+        | ChangeParamFail e ->
+            Browser.Dom.window.alert (sprintf "Registering your new username failed! %s" e)
+            init()
+    | _, AddUsernameToExtLoginResponse (Error e) ->
+        let nextModel = { currentModel with Loading = false; ExtraReactElement = Message e.Message}
+        nextModel, Cmd.none
+    /// the following was used during development
     | _, GetContextClaimsRequest ->
         let cmd =
             Cmd.OfAsync.either
@@ -540,27 +553,6 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ExtraReactElement = Message e.Message
         }
         nextModel, Cmd.none
-    | _, AddUsernameToExtLogin (username) ->
-        let nextModel = { currentModel with Loading = true }
-        let cmd =
-            Cmd.OfAsync.either
-                Server.dotnetSecureApi.addUsernameToExtLogin
-                (username)
-                (Ok >> AddUsernameToExtLoginResponse)
-                (Error >> AddUsernameToExtLoginResponse)
-        nextModel,cmd
-    | _, AddUsernameToExtLoginResponse (Ok value) ->
-        init()
-    | _, AddUsernameToExtLoginResponse (Error e) ->
-        let nextModel = { currentModel with Loading = false; ExtraReactElement = Message e.Message}
-        nextModel, Cmd.none
-    | _, GetExternalLoginTest (scheme,redirectUri) ->
-        let cmd =
-            Cmd.OfAsync.perform
-                Server.userApi.externalLoginTest
-                (scheme,redirectUri)
-                (Debug)
-        currentModel,cmd
     | _, Debug (message) ->
         { currentModel with ErrorMsg = Some message}, Cmd.none
     | _ -> currentModel, Cmd.none

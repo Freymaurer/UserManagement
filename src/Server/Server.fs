@@ -4,7 +4,6 @@ open System.Threading.Tasks
 
 open Microsoft.AspNetCore.Builder
 open Microsoft.Extensions.DependencyInjection
-open FSharp.Control.Tasks.V2
 open Giraffe
 open Saturn
 open Shared
@@ -13,19 +12,15 @@ open Fable.Remoting.Server
 open Fable.Remoting.Giraffe
 
 open Microsoft.AspNetCore.Identity
-open Microsoft.Extensions.DependencyInjection
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Identity.EntityFrameworkCore
 open Microsoft.EntityFrameworkCore
 open System.Security.Claims
-open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Authentication
-open FSharp.Control.Tasks.V2.ContextInsensitive
 open System.Net.Http
 open System.Net.Http.Headers
 open System.Text.Json
-open System.Threading.Tasks
 
 open AspNetCoreIdentity
 
@@ -37,15 +32,10 @@ let port =
     "SERVER_PORT"
     |> tryGetEnv |> Option.map uint16 |> Option.defaultValue 8085us
 
-module OAuthSigninPaths =
-
-    let googleOAuth = "/api/google-auth"
-    let githubOAuth = "/api/github-auth"
-    let orcidOAuth = "/api/orcid-auth"
-
 let nice() =
     { Value = 69 }
 
+// used during development to get all claims from currently logged in user
 let userHandler (ctx: HttpContext) =
     let testing =
         ctx.User.Claims
@@ -56,158 +46,11 @@ let userHandler (ctx: HttpContext) =
     else
         "Not logged in"
 
-let checkAccountOrigin (ctx: HttpContext) =
-    let checkOAuth = ctx.User.HasClaim (fun c -> c.Type = CustomClaims.LoginMethod && c.Value = LoginMethods.LocalAuthority)
-    if checkOAuth = true
-    then LoginMethods.LocalAuthority
-    else
-        ctx.User.Claims
-        |> Seq.map (fun x -> x.Issuer)
-        |> Seq.filter (fun x -> x <> LoginMethods.LocalAuthority)
-        |> Seq.groupBy (fun x -> x)
-        |> fun x -> if Seq.length x > 1 then failwith "Unknown Claims issuer!" else x |> (Seq.head >> fst)
-
-module OAuth =
-
-    let private challenge (scheme : string) (redirectUri : string) : HttpHandler =
-        fun (next : HttpFunc) (ctx : HttpContext) ->
-            task {
-                let signinManager = ctx.GetService<SignInManager<IdentityUser>>()
-                let properties = signinManager.ConfigureExternalAuthenticationProperties(scheme, redirectUri)
-                do! ctx.ChallengeAsync(
-                        scheme,
-                        properties
-                    )
-                return! next ctx
-            }
-
-    let gitHubAuth =
-        challenge "GitHub" "http://localhost:8080"
-
-    let googleAuth =
-        challenge "Google" "http://localhost:8080"
-
-    let orcidAuth =
-        challenge "Orcid" "http://localhost:8080"
-
-    open GiraffeViewEngine
-
-    type Message = {
-        Text    :   string
-    }
-
-    let oauthTesting (next : HttpFunc) (ctx : HttpContext) =
-        let infoMod = {Text = "Testing"}
-        let layout (content: XmlNode list) =
-            html [] [
-                head [] [
-                    title []  [ encodedText "Giraffe on Asp.Net Core with OAuth" ]
-                    link [ _rel  "stylesheet"
-                           _type "text/css"
-                           _href "/main.css" ]
-                ]
-                body [] content
-            ]
-        let partial () =
-            h1 [] [ encodedText "Hello Giraffe" ]
-        let index (model : Message) =
-            [
-                partial()
-                p [] [ encodedText model.Text ]
-            ] |> layout
-        htmlView (index infoMod) next ctx
-
-let externalLoginCallback : HttpHandler =
-    fun (next : HttpFunc) (ctx : HttpContext) ->
-        task {
-            let signinManager = ctx.GetService<SignInManager<IdentityUser>>()
-            let uniqueIdent = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.NameIdentifier) |> fun x -> x.Value
-            let issuer = checkAccountOrigin ctx
-            let! signInResult = signinManager.ExternalLoginSignInAsync(issuer,uniqueIdent,true)
-            match signInResult.Succeeded with
-            |false ->
-                printfn "%s" uniqueIdent
-                printfn "1"
-                let emailClaim =
-                    if ctx.User.HasClaim (fun c -> c.Type = ClaimTypes.Email)
-                    then ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Email) |> fun x -> x.Value
-                    else issuer + "@" + uniqueIdent
-                printfn "%s" emailClaim
-                printfn "2"
-                printfn "3"
-                let user = new IdentityUser(userName = emailClaim, Email = emailClaim)
-                let userManager = ctx.GetService<UserManager<IdentityUser>>()
-                let! createResult = userManager.CreateAsync(user)
-                printfn "4"
-                match createResult.Succeeded with
-                        | true ->
-                            printfn "5"
-                            let info = UserLoginInfo(issuer,uniqueIdent,issuer)
-                            let! addLoginResult = userManager.AddLoginAsync(user,info)
-                            printfn "6"
-                            match addLoginResult.Succeeded with
-                            | true ->
-                                printfn "7"
-                                let! addClaims =
-                                    userManager.AddClaimsAsync(user,[
-                                            Claim(
-                                                ClaimTypes.Role,"Guest",ClaimValueTypes.String,LoginMethods.LocalAuthority
-                                            );
-                                            Claim(
-                                                CustomClaims.LoginMethod,issuer,ClaimValueTypes.String,LoginMethods.LocalAuthority
-                                            )
-                                            Claim(
-                                                CustomClaims.IsUsernameSet,"false",ClaimValueTypes.Boolean,LoginMethods.LocalAuthority
-                                            )
-                                    ])
-                                printfn "8"
-                                let! signinResult = signinManager.SignInAsync(user,true)
-                                printfn "9"
-                                return! next ctx
-                            | false -> return failwith "Testing 2 error"
-                        | false -> return failwith "Testing 1 error"
-            | true ->
-                return! next ctx
-        }
-
-let addUsernameToExtLoginFunc (username:string) (ctx:HttpContext) =
-    task {
-        let userManager = ctx.GetService<UserManager<IdentityUser>>()
-        let! user = userManager.GetUserAsync(ctx.User)
-        let! addUserNameResult = userManager.SetUserNameAsync(user,username)
-        match addUserNameResult.Succeeded with
-        | true ->
-            let! changeClaimResult = userManager.ReplaceClaimAsync(user, Claim(CustomClaims.IsUsernameSet,"false"), Claim(CustomClaims.IsUsernameSet,"true"))
-            match changeClaimResult.Succeeded with
-            | true ->
-                let signinManager = ctx.GetService<SignInManager<IdentityUser>>()
-                let! signout = signinManager.SignOutAsync()
-                let! signin = signinManager.SignInAsync(user,true)
-                return "Succeded"
-            | false ->
-                return "Failed 2"
-        | false ->
-            return "Failed"
-    } |> fun x -> x.Result
-
-let testExtLogin (ctx:HttpContext) =
-    task {
-        let signinManager = ctx.GetService<SignInManager<IdentityUser>>()
-        let! signinResult = signinManager.ExternalLoginSignInAsync("Google","104335612853700138136",true)
-        printfn "%A" signinResult.Succeeded
-    } |> fun x -> x.Result
-
 let dotnetApi (context: HttpContext) = {
     dotnetLogin = fun (loginModel) -> async { return (dotnetLogin loginModel context) }
     dotnetRegister = fun (registerModel) -> async { return (dotnetRegistration registerModel context) }
     getContextClaims = fun () -> async { return (userHandler context)}
     initialCounter = fun () -> async {return { Value = 42 }}
-    //testing
-    externalLoginTest = fun (scheme,redirect) ->
-        async {
-            return
-                sprintf "done %A" "!"
-        }
     }
 
 let dotnetSecureApi (context: HttpContext) = {
@@ -216,7 +59,7 @@ let dotnetSecureApi (context: HttpContext) = {
     dotnetUserLogOut = fun () -> async { return dotnetUserLogOut context }
     dotnetDeleteUserAccount = fun loginModel -> async {return (dotnetDeleteAccount loginModel context)}
     dotnetChangeUserParameters = fun (loginModel,userParam,input) -> async { return dotnetChangeUserParams loginModel userParam input context }
-    addUsernameToExtLogin = fun (username) -> async { return addUsernameToExtLoginFunc username context }
+    addUsernameToExtLogin = fun (username) -> async { return OAuth.addUsernameToExtLoginFunc username context }
     }
 
 let adminSecureApi (context: HttpContext) = {
@@ -268,18 +111,23 @@ let webApp =
         )
 
     router {
-        forward "/api/testing" OAuth.oauthTesting
+        /// urls for challenge against oauth login
         forward OAuthSigninPaths.googleOAuth OAuth.googleAuth
         forward OAuthSigninPaths.githubOAuth OAuth.gitHubAuth
         forward OAuthSigninPaths.orcidOAuth OAuth.orcidAuth
-        forward "/api/externalLoginCallback" (externalLoginCallback >=> redirectTo false ("http://localhost:8080/"))
+        /// oauth callback: creates useraccount and external user login for oauth user
+        forward "/api/externalLoginCallback" (OAuth.externalLoginCallback >=> redirectTo false ("http://localhost:8080/"))
+        /// extra log out url; not necessary
         forward "/api/logout" (signOut "Cookies")
+        /// fable remoting apis
         forward "" userApi
         forward "" (mustBeLoggedIn >=> dotnetSecureApi)
         forward "" (mustBeLoggedIn >=> mustBeUserManager >=> adminSecureApi)
         forward "" (setStatusCode 404 >=> text "Not Found")
     }
 
+
+/// Client ids and Client secrets
 let testGoogleId = "84896855857-3sq30njitdkb44mme3ksvh3vj829ei57.apps.googleusercontent.com"
 let testGoogleSecret = "jZWx6xzNKmMjUjQT7GZc7JJV"
 
@@ -304,7 +152,7 @@ let configureServices (services : IServiceCollection) =
             ) |> ignore
         ) |> ignore
 
-    //Block 2; example taken from C# Asp.Net Core Webapplication
+    //
     services.AddDefaultIdentity<IdentityUser>(
         fun options ->
             options.User.RequireUniqueEmail <- true
@@ -324,6 +172,7 @@ let configureServices (services : IServiceCollection) =
             options.User.AllowedUserNameCharacters <- "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+"
         ) |> ignore
 
+    /// add OAuth authentications; always add callback link to create user accounts!
     services.AddAuthentication(
         fun options ->
             options.DefaultAuthenticateScheme <- CookieAuthenticationDefaults.AuthenticationScheme

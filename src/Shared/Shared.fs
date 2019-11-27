@@ -6,6 +6,12 @@ module ServiceHelpers =
 
     let ServiceMail = "Example@email.de"
 
+module OAuthSigninPaths =
+
+    let googleOAuth = "/api/google-auth"
+    let githubOAuth = "/api/github-auth"
+    let orcidOAuth = "/api/orcid-auth"
+
 // allowed roles a user could have
 type ActiveUserRoles =
 | Developer
@@ -88,7 +94,6 @@ type IUserApi = {
     dotnetRegister : RegisterModel -> Async<DotnetRegisterResults>
     getContextClaims : unit -> Async<string>
     initialCounter : unit -> Async<Counter>
-    externalLoginTest : string*string -> Async<string>
 }
 
 type IDotnetSecureApi = {
@@ -97,7 +102,7 @@ type IDotnetSecureApi = {
     dotnetUserLogOut : unit -> Async<DotnetLogOutResults>
     dotnetDeleteUserAccount : LoginModel -> Async<DotnetDeleteAccountResults>
     dotnetChangeUserParameters : LoginModel * UserParameters * string -> Async<DotnetChangeParameterResults>
-    addUsernameToExtLogin : string -> Async<string>
+    addUsernameToExtLogin : string -> Async<DotnetChangeParameterResults>
 }
 
 type IAdminSecureApi = {

@@ -26,7 +26,7 @@ let emptyStr = str ""
 let googleOAuthButton =
     div [ Props.Class "loginBtn loginBtn--google" ] [
         str "Sign in with Google"
-        a [Href "/api/google-auth"][
+        a [Href OAuthSigninPaths.googleOAuth][
             span [ Class "divToLinkEmptySpan" ] []
         ]
     ]
@@ -34,7 +34,7 @@ let googleOAuthButton =
 let githubOAuthButton =
     div [ Props.Class "loginBtn loginBtn--github"][
         str "Sign in with GitHub"
-        a [ Href "/api/github-auth" ][
+        a [ Href OAuthSigninPaths.githubOAuth ][
             span [ Class "divToLinkEmptySpan" ] []
         ]
     ]
@@ -42,7 +42,7 @@ let githubOAuthButton =
 let orcidOAuthButton =
     div [ Props.Class "loginBtn loginBtn--orcid"][
         str "Sign in with Orcid"
-        a [ Href "/api/orcid-auth" ][
+        a [ Href OAuthSigninPaths.orcidOAuth ][
             span [ Class "divToLinkEmptySpan" ] []
         ]
     ]

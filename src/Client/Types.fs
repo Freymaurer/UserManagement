@@ -97,7 +97,7 @@ and Msg =
     | GetContextClaimsRequest
     | GetContextClaimsResponse of Result<string,exn>
     | AddUsernameToExtLogin of string
-    | AddUsernameToExtLoginResponse of Result<string,exn>
+    | AddUsernameToExtLoginResponse of Result<DotnetChangeParameterResults,exn>
     | GetExternalLoginTest of string*string
     | GetExternalLoginTestResponse of Result<string,exn>
 

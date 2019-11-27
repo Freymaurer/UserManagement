@@ -11,25 +11,17 @@ open FSharp.Control.Tasks
 open System.Security.Claims
 open System.Text
 
+
+// define custom claims
 module CustomClaims =
     let LoginMethod = "LoginMethod"
     let IsUsernameSet = "IsUsernameSet"
 
+// define LoginMethods for custom claim "LoginMethod"
 module LoginMethods =
     let LocalAuthority = "LOCAL AUTHORITY"
     let Github = "GitHub"
     let Google = "Google"
-
-let checkAccountOrigin (ctx: HttpContext) =
-    let checkOAuth = ctx.User.HasClaim (fun c -> c.Type = CustomClaims.LoginMethod && c.Value = LoginMethods.LocalAuthority)
-    if checkOAuth = true
-    then LoginMethods.LocalAuthority
-    else
-        ctx.User.Claims
-        |> Seq.map (fun x -> x.Issuer)
-        |> Seq.filter (fun x -> x <> LoginMethods.LocalAuthority)
-        |> Seq.groupBy (fun x -> x)
-        |> fun x -> if Seq.length x > 1 then failwith "Unknown Claims issuer!" else x |> (Seq.head >> fst)
 
 let showErrors (errors : IdentityError seq) =
     errors
@@ -74,8 +66,8 @@ let dotnetDeleteAccount (loginModel:LoginModel) (context: HttpContext) =
                 let! deleteResult = userManager.DeleteAsync user
                 match deleteResult.Succeeded with
                 | true -> return DeleteSuccess
-                | false -> return DeleteFail (deleteResult.Errors |> Seq.map (fun  x-> x.Code + " - " + x.Description) |> String.concat ". ")
-            | false -> return DeleteFail "Error 401 Access Denied"
+                | false -> return DeleteFail (showErrors deleteResult.Errors)
+            | false -> return DeleteFail (result.ToString())
         } |> fun x -> x.Result
     else DeleteFail "Error 401 Access Denied"
 
@@ -94,8 +86,8 @@ let adminDeleteAccount (loginModel:LoginModel) (userInput:User) (context: HttpCo
                 let! deleteResult = userManager.DeleteAsync user
                 match deleteResult.Succeeded with
                 | true -> return DeleteSuccess
-                | false -> return DeleteFail (deleteResult.Errors |> Seq.map (fun  x-> x.Code + " - " + x.Description) |> String.concat ". ")
-            | false -> return DeleteFail "Error 401 Access Denied"
+                | false -> return DeleteFail (showErrors deleteResult.Errors)
+            | false -> return DeleteFail (result.ToString())
         } |> fun x -> x.Result
     else DeleteFail "Error 401 Access Denied"
 
@@ -125,8 +117,8 @@ let dotnetChangeUserParams (loginModel:LoginModel) (userParameter:UserParameters
                     do! signInManager.SignOutAsync()
                     let! result = signInManager.SignInAsync(user,isPersistent = true)
                     return ChangeParamSuccess
-                | false -> return ChangeParamFail (updateResult.Errors |> Seq.map (fun  x-> x.Code + " - " + x.Description) |> String.concat ". ")
-            | false -> return ChangeParamFail "Error 401 Access Denied"
+                | false -> return ChangeParamFail (showErrors updateResult.Errors)
+            | false -> return ChangeParamFail (result.ToString())
         } |> fun x -> x.Result
     else ChangeParamFail "Error 401 Access Denied"
 
@@ -161,7 +153,6 @@ let adminChangeUserParams (loginModel:LoginModel) (userInput:User) (userParamete
                         let checkNewRole =
                             if AuxFunctions.authentificationLevelByRole input >= contextUserAuthentificationLevel then failwith "Error 401 Access Denied; 02"
                         userManager.ReplaceClaimAsync(user, new Claim(ClaimTypes.Role,role), new Claim(ClaimTypes.Role, input))
-                    | _ -> failwith "Parameter to change can not be recognized"
                 match updateResult.Succeeded with
                 | true ->
                     if loginModel.Username = userInput.Username
@@ -171,10 +162,10 @@ let adminChangeUserParams (loginModel:LoginModel) (userInput:User) (userParamete
                         let! result = signInManager.SignInAsync(user,isPersistent = true)
                         return ChangeParamSuccess
                     else return ChangeParamSuccess
-                | false -> return ChangeParamFail (updateResult.Errors |> Seq.map (fun  x-> x.Code + " - " + x.Description) |> String.concat ". ")
-            | false -> return ChangeParamFail "Error 401 Access Denied"
+                | false -> return ChangeParamFail (showErrors updateResult.Errors)
+            | false -> return ChangeParamFail (result.ToString())
         } |> fun x -> x.Result
-    else ChangeParamFail "Error 401 Access Denied; 00"
+    else ChangeParamFail "Error 401 Access Denied"
 
 let dotnetGetUser (context: HttpContext) =
         task {
@@ -235,7 +226,7 @@ let dotnetRegistration (registerModel:RegisterModel) (context: HttpContext) =
         match result.Succeeded with
         | false -> return (RegisterFail (showErrors result.Errors))
         | true  ->
-            let! addingClaims = userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, "User"))
+            let! addingClaims = userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, (string ActiveUserRoles.Guest)))
             let! addingClaims2 =
                 userManager.AddClaimAsync(user, new Claim(CustomClaims.LoginMethod, LoginMethods.LocalAuthority))
             match addingClaims.Succeeded,addingClaims2.Succeeded with
@@ -265,4 +256,112 @@ let adminUserRegistration (registerModel:RegisterModel) (role:ActiveUserRoles) (
                 | true,true  ->
                     return RegisterSuccess
                 | _,_ -> return (RegisterFail (showErrors result.Errors))
+        } |> fun x -> x.Result
+
+
+// returns origin of user account (think: oauth or local authority)
+let checkAccountOrigin (ctx: HttpContext) =
+    let checkOAuth = ctx.User.HasClaim (fun c -> c.Type = CustomClaims.LoginMethod && c.Value = LoginMethods.LocalAuthority)
+    if checkOAuth = true
+    then LoginMethods.LocalAuthority
+    else
+        ctx.User.Claims
+        |> Seq.map (fun x -> x.Issuer)
+        |> Seq.filter (fun x -> x <> LoginMethods.LocalAuthority)
+        |> Seq.groupBy (fun x -> x)
+        |> fun x -> if Seq.length x > 1 then failwith "Unknown Claims issuer!" else x |> (Seq.head >> fst)
+
+
+open FSharp.Control.Tasks.V2.ContextInsensitive
+
+module OAuth =
+
+    //https://github.com/giraffe-fsharp/Giraffe/blob/master/src/Giraffe/Auth.fs#L23
+    let private challenge (scheme : string) (redirectUri : string) : HttpHandler =
+        fun (next : HttpFunc) (ctx : HttpContext) ->
+            task {
+                let signinManager = ctx.GetService<SignInManager<IdentityUser>>()
+                let properties = signinManager.ConfigureExternalAuthenticationProperties(scheme, redirectUri)
+                do! ctx.ChallengeAsync(
+                        scheme,
+                        properties
+                    )
+                return! next ctx
+            }
+
+    let gitHubAuth : HttpHandler =
+        challenge "GitHub" "http://localhost:8080"
+
+    let googleAuth : HttpHandler =
+        challenge "Google" "http://localhost:8080"
+
+    let orcidAuth : HttpHandler =
+        challenge "Orcid" "http://localhost:8080"
+
+    open GiraffeViewEngine
+
+    type Message = {
+        Text    :   string
+    }
+
+    let externalLoginCallback : HttpHandler =
+        fun (next : HttpFunc) (ctx : HttpContext) ->
+            task {
+                let signinManager = ctx.GetService<SignInManager<IdentityUser>>()
+                let uniqueIdent = ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.NameIdentifier) |> fun x -> x.Value
+                let issuer = checkAccountOrigin ctx
+                let! signInResult = signinManager.ExternalLoginSignInAsync(issuer,uniqueIdent,true)
+                match signInResult.Succeeded with
+                |false ->
+                    let emailClaim =
+                        if ctx.User.HasClaim (fun c -> c.Type = ClaimTypes.Email)
+                        then ctx.User.FindFirst (fun c -> c.Type = ClaimTypes.Email) |> fun x -> x.Value
+                        else issuer + "@" + uniqueIdent
+                    let user = new IdentityUser(userName = emailClaim, Email = emailClaim)
+                    let userManager = ctx.GetService<UserManager<IdentityUser>>()
+                    let! createResult = userManager.CreateAsync(user)
+                    match createResult.Succeeded with
+                            | true ->
+                                let info = UserLoginInfo(issuer,uniqueIdent,issuer)
+                                let! addLoginResult = userManager.AddLoginAsync(user,info)
+                                match addLoginResult.Succeeded with
+                                | true ->
+                                    let! addClaims =
+                                        userManager.AddClaimsAsync(user,[
+                                                Claim(
+                                                    ClaimTypes.Role,"Guest",ClaimValueTypes.String,LoginMethods.LocalAuthority
+                                                );
+                                                Claim(
+                                                    CustomClaims.LoginMethod,issuer,ClaimValueTypes.String,LoginMethods.LocalAuthority
+                                                )
+                                                Claim(
+                                                    CustomClaims.IsUsernameSet,"false",ClaimValueTypes.Boolean,LoginMethods.LocalAuthority
+                                                )
+                                        ])
+                                    let! signinResult = signinManager.SignInAsync(user,true)
+                                    return! next ctx
+                                | false -> return failwith "ExternalLoginFail AddLogin failed"
+                            | false -> return failwith "ExternalLoginFail CreateUser failed"
+                | true ->
+                    return! next ctx
+            }
+
+    let addUsernameToExtLoginFunc (username:string) (ctx:HttpContext) =
+        task {
+            let userManager = ctx.GetService<UserManager<IdentityUser>>()
+            let! user = userManager.GetUserAsync(ctx.User)
+            let! addUserNameResult = userManager.SetUserNameAsync(user,username)
+            match addUserNameResult.Succeeded with
+            | true ->
+                let! changeClaimResult = userManager.ReplaceClaimAsync(user, Claim(CustomClaims.IsUsernameSet,"false"), Claim(CustomClaims.IsUsernameSet,"true"))
+                match changeClaimResult.Succeeded with
+                | true ->
+                    let signinManager = ctx.GetService<SignInManager<IdentityUser>>()
+                    let! signout = signinManager.SignOutAsync()
+                    let! signin = signinManager.SignInAsync(user,true)
+                    return ChangeParamSuccess
+                | false ->
+                    return changeClaimResult.Errors.ToString() |> ChangeParamFail
+            | false ->
+                return addUserNameResult.Errors.ToString() |> ChangeParamFail
         } |> fun x -> x.Result
