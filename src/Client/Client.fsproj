@@ -13,6 +13,14 @@
         <Compile Include="Types.fs" />
         <Compile Include="AuxFunctions.fs" />
         <Compile Include="State.fs" />
+        <Compile Include="View\Placeholder.fs" />
+        <Compile Include="View\Counter.fs" />
+        <Compile Include="View\Helper.fs" />
+        <Compile Include="View\Modals.fs" />
+        <Compile Include="View\NavbarLogin.fs" />
+        <Compile Include="View\SidebarMenu.fs" />
+        <Compile Include="View\UserAccount.fs" />
+        <Compile Include="View\Userlist.fs" />
         <Compile Include="View.fs" />
         <Compile Include="Client.fs" />
     </ItemGroup>

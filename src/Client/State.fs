@@ -24,7 +24,7 @@ let init () : Model * Cmd<Msg> =
         AdminUserList = [||]
         AdminUserListRoleFilter = All
         AdminViewUser = None
-        AdminAssignRole = Guest
+        AdminAssignRole = NoRole
     }
     let loadCountCmd =
         Cmd.OfAsync.perform
@@ -45,22 +45,24 @@ let init () : Model * Cmd<Msg> =
 // these commands in turn, can dispatch messages to which the update function will react.
 let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
     match currentModel.Counter, msg with
-        /// functions to manage counter
+        // functions to manage counter
+        ///
     | Some counter, Increment ->
         let nextModel = { currentModel with Counter = Some { Value = counter.Value + 1 } }
         nextModel, Cmd.none
+        ///
     | Some counter, Decrement ->
         let nextModel = { currentModel with Counter = Some { Value = counter.Value - 1 } }
         nextModel, Cmd.none
+        ///
     | _, UpdateInputString (str) ->
-        let nextModel = {
-            currentModel with
-                InputString = str
-        }
+        let nextModel = { currentModel with InputString = str }
         nextModel,Cmd.none
+        ///
     | _, InitialCountLoaded initialCount ->
         let nextModel = { currentModel with Counter = Some initialCount; Loading = false }
         nextModel, Cmd.none
+        ///
     | _, InitialUserLoaded initialUser ->
         let nextModel =
             if initialUser.ExtLogin.IsTrue && initialUser.ExtLogin.IsUsernameSet = false
@@ -69,21 +71,23 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
             else
                 { currentModel with User = Some initialUser; Loading = false;Authenticated = true }
         nextModel, Cmd.none
-        /// Menu Management Functions
+        // Menu Management Functions
+        ///
     | _, ClearRegisterLogin ->
         let nextModel = {
             currentModel with
                 LoginModel = {Username = ""; Password = ""}
                 RegisterModel = {Username = "";Password = "";Email = ""}
-                AdminAssignRole = Guest
+                AdminAssignRole = NoRole
         }
         nextModel, Cmd.none
+        ///
     | _, ToggleMenu ->
         let nextModel = {
-            currentModel with
-                ShowMenuBool = if currentModel.ShowMenuBool = true then false else true
+            currentModel with ShowMenuBool = if currentModel.ShowMenuBool = true then false else true
         }
         nextModel,Cmd.none
+        ///
     | _, ChangeMainReactElement (newElement) ->
         let nextModel = {
             currentModel with
@@ -91,6 +95,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ShowMenuBool = false
         }
         nextModel, Cmd.none
+        ///
     | _, SortAllUserList (searchString) ->
         let sortedArr =
             currentModel.AdminUserList
@@ -99,17 +104,13 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                     let completeInfo = x.Username + " " + x.Email
                     Client.AuxFunctions.rankCompareStringsBySearchString searchString completeInfo
             )
-        let nextModel = {
-            currentModel with
-                AdminUserList = sortedArr
-        }
+        let nextModel = { currentModel with AdminUserList = sortedArr }
         nextModel,Cmd.none
+        ///
     | _, FilterAllUserList (userRole) ->
-        let nextModel = {
-            currentModel with
-                AdminUserListRoleFilter = userRole
-        }
+        let nextModel = { currentModel with AdminUserListRoleFilter = userRole }
         nextModel,Cmd.none
+        ///
     | _, AdminSelectUser (user) ->
         let nextModel = {
             currentModel with
@@ -117,38 +118,33 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 MainReactElement = UserAccount user
         }
         nextModel,Cmd.none
+        ///
     | _, AdminSelectAssignRole (role) ->
-        let nextModel = {
-            currentModel with
-                AdminAssignRole = role
-        }
+        let nextModel = { currentModel with AdminAssignRole = role }
         nextModel,Cmd.none
-        /// functions to manage input fields for user log in
+        // functions to manage input fields for user log in
+        ///
     | _ , UpdateLoginUsername (name:string) ->
         let nextModel = {
-            currentModel with
-                LoginModel = {currentModel.LoginModel with Username = name}
+            currentModel with LoginModel = {currentModel.LoginModel with Username = name}
         }
         nextModel, Cmd.none
+        ///
     | _ , UpdateLoginUserPw (pw:string) ->
         let nextModel = {
-            currentModel with
-                LoginModel = {currentModel.LoginModel with Password = pw}
+            currentModel with LoginModel = {currentModel.LoginModel with Password = pw}
         }
         nextModel, Cmd.none
+        ///
     | _, UpdateRegisterModel (registerModel) ->
-        let nextModel = {
-            currentModel with
-                RegisterModel = registerModel
-        }
+        let nextModel = { currentModel with RegisterModel = registerModel }
         nextModel, Cmd.none
+        ///
     | _, UpdateExtraElement (element) ->
-        let nextModel = {
-            currentModel with
-                ExtraReactElement = element
-        }
+        let nextModel = { currentModel with ExtraReactElement = element }
         nextModel,Cmd.none
-        ///functions to handle user registration
+        // functions to handle user registration
+        ///
     | _, DotnetRegisterRequest (registermodel) ->
         let nextModel = { currentModel with ExtraReactElement = EmptyElement }
         let cmd =
@@ -158,20 +154,22 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 (Ok >> DotnetRegisterResponse)
                 (Error >> DotnetRegisterResponse)
         nextModel,cmd
+        ///
     | _, DotnetRegisterResponse (Ok value) ->
         let nextModel,cmd =
             match value with
             | RegisterFail x ->
-                { currentModel with
-                    Loading = false
-                    ExtraReactElement = Message x
-                    RegisterModel = {currentModel.RegisterModel with Password = ""}
-                } , Cmd.none
+                {
+                    currentModel with
+                        Loading = false
+                        ExtraReactElement = Message x
+                        RegisterModel = {currentModel.RegisterModel with Password = ""}
+                }
+                , Cmd.none
             | RegisterSuccess ->
-                { currentModel with
-                    Loading = false
-                }, Cmd.ofMsg DotnetGetUserRequest
+                { currentModel with Loading = false } , Cmd.ofMsg DotnetGetUserRequest
         nextModel, cmd
+        ///
     | _, DotnetRegisterResponse (Error e) ->
         let nextModel = {
             currentModel with
@@ -181,19 +179,18 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 RegisterModel = {currentModel.RegisterModel with Password = ""}
         }
         nextModel, Cmd.none
-        /// functions to log in user via asp.net
+        // functions to log in user via asp.net
+        ///
     | _, DotnetLoginRequest (user) ->
+        let nextModel = { currentModel with Loading = true }
         let cmdLogin =
             Cmd.OfAsync.either
                 Server.userApi.dotnetLogin
                 user
                 (Result.Ok >> DotnetLoginResponse)
                 (Result.Error >> DotnetLoginResponse)
-        let nextModel = {
-            currentModel with
-                Loading = true
-            }
         nextModel,cmdLogin
+        ///
     | _ , DotnetLoginResponse (Result.Error e) ->
         let nextModel = {
             currentModel with
@@ -203,6 +200,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 MainReactElement = Counter
         }
         nextModel,Cmd.ofMsg (UpdateExtraElement (Message e.Message))
+        ///
     | _ , DotnetLoginResponse (Result.Ok value) ->
         let (nextModel,cmd) =
             match value with
@@ -224,7 +222,8 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 },
                 Cmd.ofMsg (UpdateExtraElement (Message msg))
         nextModel, cmd
-        /// functions to access already logged in user information
+        // functions to access already logged in user information
+        ///
     | _, DotnetGetUserRequest ->
         let cmd =
             Cmd.OfAsync.either
@@ -233,25 +232,16 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 (Result.Ok >> DotnetGetUserResponse)
                 (Error >> DotnetGetUserResponse)
         currentModel, cmd
+        ///
     | _, DotnetGetUserResponse (Ok value) ->
         let nextModel =
             if value.ExtLogin.IsTrue && value.ExtLogin.IsUsernameSet = false
-            then {
-                currentModel with
-                    //ExtraReactElement = Message "Getting User Information was successful"
-                    Authenticated = true
-                    User = Some value
-                    Loading = false
-                    ExtraReactElement = AddUsernameToExternLoginModal
-                }
-            else {
-                currentModel with
-                    //ExtraReactElement = Message "Getting User Information was successful"
-                    Authenticated = true
-                    User = Some value
-                    Loading = false
-                }
+            then { currentModel with
+                    Authenticated = true; User = Some value; Loading = false; ExtraReactElement = AddUsernameToExternLoginModal }
+            else { currentModel with
+                    Authenticated = true; User = Some value; Loading = false }
         nextModel,Cmd.none
+        ///
     | _, DotnetGetUserResponse (Error e) ->
         let nextModel = {
             currentModel with
@@ -260,12 +250,10 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ErrorMsg = Some e.Message
         }
         nextModel,Cmd.none
-        /// functions to access user-only counter
+        // functions to access user-only counter
+        ///
     | _, GetUserCounterRequest ->
-        let nextModel = {
-            currentModel with
-                Loading = true
-        }
+        let nextModel = { currentModel with Loading = true }
         let cmd =
             Cmd.OfAsync.either
                 Server.dotnetSecureApi.getUserCounter
@@ -273,47 +261,44 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 (Ok >> GetUserCounterResponse)
                 (Error >> GetUserCounterResponse)
         nextModel, cmd
+        ///
     | _, GetUserCounterResponse (Ok value)->
-        let nextModel = {
-            currentModel with
-                Loading = false
-                Counter = Some value
-        }
+        let nextModel = { currentModel with Loading = false; Counter = Some value }
         nextModel, Cmd.none
+        ///
     | _, GetUserCounterResponse (Error e)->
         let nextModel = {
             currentModel with
                 Loading = false
                 ErrorMsg = Some e.Message
+                ExtraReactElement = Message "This function is for User only"
         }
-        nextModel, Cmd.ofMsg (UpdateExtraElement (Message "This function is for User only"))
-        /// functions to handle user log out
+        nextModel, Cmd.none
+        // functions to handle user log out
+        ///
     | _, DotnetLogOutRequest ->
+        let nextModel = { currentModel with Loading = true }
         let cmd =
             Cmd.OfAsync.either
                 Server.dotnetSecureApi.dotnetUserLogOut
                 ()
                 (Ok >> DotnetLogOutResponse)
                 (Error >> DotnetLogOutResponse)
-        let nextModel = {
-            currentModel with
-                Loading = true
-        }
         nextModel, cmd
+        /// 
     | _, DotnetLogOutResponse (Ok value) ->
-        let (startModel,_) = init()
+        let startModel,_ = init()
         let cmd =
             Cmd.OfAsync.perform
                 Server.userApi.initialCounter
                 ()
                 InitialCountLoaded
         startModel, cmd
+        ///
     | _, DotnetLogOutResponse (Error e) ->
-        let nextModel = {
-            currentModel with
-                ErrorMsg = Some e.Message
-        }
+        let nextModel = { currentModel with ErrorMsg = Some e.Message }
         nextModel, Cmd.none
+        ///
     | _, DotnetChangeUserParamRequest (loginModel, userParam, input) ->
         let cmd =
             Cmd.OfAsync.either
@@ -326,6 +311,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 Loading = true
         }
         nextModel, cmd
+        ///
     | _, DotnetChangeUserParamResponse (Ok value) ->
         match value with
         | ChangeParamSuccess ->
@@ -344,24 +330,21 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                     LoginModel = {currentModel.LoginModel with Password = ""}
                 }
             nextModel, Cmd.none
+        ///
     | _, DotnetChangeUserParamResponse (Error e) ->
-        let nextModel = {
-            currentModel with
-                ExtraReactElement = Message e.Message
-        }
+        let nextModel = { currentModel with ExtraReactElement = Message e.Message }
         nextModel, Cmd.none
+        ///
     | _, DeleteAccountRequest (loginModel) ->
+        let nextModel = { currentModel with Loading = true }
         let cmd =
             Cmd.OfAsync.either
                 Server.dotnetSecureApi.dotnetDeleteUserAccount
                 loginModel
                 (Ok >> DeleteAccountResponse)
                 (Error >> DeleteAccountResponse)
-        let nextModel = {
-            currentModel with
-                Loading = true
-        }
         nextModel, cmd
+        ///
     | _, DeleteAccountResponse (Ok value) ->
         let initModel,_ = init()
         let initCmd =
@@ -377,6 +360,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 Browser.Dom.window.alert ("You tried deleting the account and it failed. For security reasons you were logged out. " + str)
                 currentModel, Cmd.ofMsg DotnetLogOutRequest
         nextModel, cmd
+        ///
     | _, DeleteAccountResponse (Error e) ->
         let nextModel = {
             currentModel with
@@ -384,11 +368,31 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 LoginModel = {Username = ""; Password = ""}
         }
         nextModel,Cmd.none
+        ///
+    | _, AddUsernameToExtLogin (username) ->
+        let nextModel = { currentModel with Loading = true }
+        let cmd =
+            Cmd.OfAsync.either
+                Server.dotnetSecureApi.addUsernameToExtLogin
+                (username)
+                (Ok >> AddUsernameToExtLoginResponse)
+                (Error >> AddUsernameToExtLoginResponse)
+        nextModel,cmd
+        ///
+    | _, AddUsernameToExtLoginResponse (Ok value) ->
+        match value with
+        | ChangeParamSuccess ->
+            init()
+        | ChangeParamFail e ->
+            Browser.Dom.window.alert (sprintf "Registering your new username failed! %s" e)
+            init()
+        ///
+    | _, AddUsernameToExtLoginResponse (Error e) ->
+        let nextModel = { currentModel with Loading = false; ExtraReactElement = Message e.Message}
+        nextModel, Cmd.none
+        ///
     | _, AdminGetAllUsersRequest ->
-        let nextModel = {
-            currentModel with
-                Loading = true
-        }
+        let nextModel = { currentModel with Loading = true }
         let cmd =
             Cmd.OfAsync.either
                 Server.dotnetAdminSecureApi.dotnetGetAllUsers
@@ -396,6 +400,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                     (Ok >> AdminGetAllUsersResponse)
                     (Error >> AdminGetAllUsersResponse)
         nextModel,cmd
+        ///
     | _, AdminGetAllUsersResponse (Ok value) ->
         let nextModel = {
             currentModel with
@@ -403,6 +408,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 AdminUserList = value
         }
         nextModel, Cmd.none
+        ///
     | _, AdminGetAllUsersResponse (Error e) ->
         let nextModel = {
             currentModel with
@@ -411,6 +417,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ExtraReactElement = Message e.Message
         }
         nextModel, Cmd.none
+        ///
     | _, AdminRegisterUserRequest (registermodel,role) ->
         let cmd =
             Cmd.OfAsync.either
@@ -424,20 +431,26 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ExtraReactElement = EmptyElement
         }
         nextModel, cmd
+        ///
     | _, AdminRegisterUserResponse (Ok value) ->
         let nextModel,cmd =
             match value with
             | RegisterFail x ->
-                { currentModel with
-                    Loading = false
-                    ExtraReactElement = Message x
-                    RegisterModel = {currentModel.RegisterModel with Password = ""}
-                } , Cmd.none
+                {
+                    currentModel with
+                        Loading = false
+                        ExtraReactElement = Message x
+                        RegisterModel = {currentModel.RegisterModel with Password = ""}
+                }
+                , Cmd.none
             | RegisterSuccess ->
-                { currentModel with
-                    Loading = false
-                }, Cmd.ofMsg AdminGetAllUsersRequest
+                {
+                    currentModel with
+                        Loading = false
+                }
+                , Cmd.ofMsg AdminGetAllUsersRequest
         nextModel, cmd
+        ///
     | _, AdminRegisterUserResponse (Error e) ->
         let nextModel = {
             currentModel with
@@ -447,18 +460,17 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 RegisterModel = {currentModel.RegisterModel with Password = ""}
         }
         nextModel, Cmd.none
+        ///
     | _, AdminChangeUserParamsRequest (loginModel,user,userParam,input) ->
+        let nextModel = { currentModel with Loading = true }
         let cmd =
             Cmd.OfAsync.either
                 Server.dotnetAdminSecureApi.adminChangeUserParameters
                 (loginModel,user,userParam,input)
                 (Ok >> AdminChangeUserParamsResponse)
                 (Error >> AdminChangeUserParamsResponse)
-        let nextModel = {
-            currentModel with
-                Loading = true
-        }
         nextModel, cmd
+        ///
     | _, AdminChangeUserParamsResponse (Ok value) ->
         match value with
         | ChangeParamSuccess ->
@@ -476,6 +488,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                     ExtraReactElement = Message str
             }
             nextModel,Cmd.none
+        ///
     | _, AdminChangeUserParamsResponse (Error e) ->
         let nextModel = {
             currentModel with
@@ -483,6 +496,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ExtraReactElement = Message e.Message
         }
         nextModel,Cmd.none
+        ///
     | _, AdminDeleteAccountRequest (loginModel,user) ->
         let cmd =
             Cmd.OfAsync.either
@@ -497,6 +511,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 ExtraReactElement = EmptyElement
         }
         nextModel,cmd
+        ///
     | _, AdminDeleteAccountResponse (Ok value) ->
         let nextModel,cmd =
             match value with
@@ -506,6 +521,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 Browser.Dom.window.alert ("You tried deleting the account and it failed. For security reasons you were logged out. " + str)
                 currentModel, Cmd.ofMsg DotnetLogOutRequest
         nextModel, cmd
+        ///
     | _, AdminDeleteAccountResponse (Error e) ->
         let nextModel = {
             currentModel with
@@ -513,26 +529,8 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 LoginModel = {Username = ""; Password = ""}
         }
         nextModel,Cmd.none
-    | _, AddUsernameToExtLogin (username) ->
-        let nextModel = { currentModel with Loading = true }
-        let cmd =
-            Cmd.OfAsync.either
-                Server.dotnetSecureApi.addUsernameToExtLogin
-                (username)
-                (Ok >> AddUsernameToExtLoginResponse)
-                (Error >> AddUsernameToExtLoginResponse)
-        nextModel,cmd
-    | _, AddUsernameToExtLoginResponse (Ok value) ->
-        match value with
-        | ChangeParamSuccess ->
-            init()
-        | ChangeParamFail e ->
-            Browser.Dom.window.alert (sprintf "Registering your new username failed! %s" e)
-            init()
-    | _, AddUsernameToExtLoginResponse (Error e) ->
-        let nextModel = { currentModel with Loading = false; ExtraReactElement = Message e.Message}
-        nextModel, Cmd.none
-    /// the following was used during development
+        // the following was used during development
+        ///
     | _, GetContextClaimsRequest ->
         let cmd =
             Cmd.OfAsync.either
@@ -541,18 +539,17 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 (Ok >> GetContextClaimsResponse)
                 (Error >> GetContextClaimsResponse)
         currentModel, cmd
+        ///
     | _, GetContextClaimsResponse (Ok value) ->
         let nextModel = {
-            currentModel with
-                ExtraReactElement = Message ("Connection was stable and succeded >=> " + value)
+            currentModel with ExtraReactElement = Message ("Connection was stable and succeded >=> " + value)
         }
         nextModel,Cmd.none
+        ///
     | _, GetContextClaimsResponse (Error e) ->
-        let nextModel = {
-            currentModel with
-                ExtraReactElement = Message e.Message
-        }
+        let nextModel = { currentModel with ExtraReactElement = Message e.Message }
         nextModel, Cmd.none
+        ///
     | _, Debug (message) ->
         { currentModel with ErrorMsg = Some message}, Cmd.none
     | _ -> currentModel, Cmd.none

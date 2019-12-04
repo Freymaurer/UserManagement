@@ -20,6 +20,7 @@ type ActiveUserRoles =
 | User
 | Guest
 | All
+| NoRole
 
 type ExternalLogin = {
     IsTrue : bool

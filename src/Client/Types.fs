@@ -53,6 +53,7 @@ and Model = {
 // The Msg type defines what events/actions can occur while the application is running
 // the state of the application changes *only* in reaction to these events
 and Msg =
+    // Client Msg
     | ClearRegisterLogin
     | ToggleMenu
     | ChangeMainReactElement of MainReactElement
@@ -63,15 +64,13 @@ and Msg =
     | Increment
     | Decrement
     | UpdateInputString of string
-    | InitialCountLoaded of Counter
-    | InitialUserLoaded of User
+    | UpdateExtraElement of ExtraReactElement
     | UpdateLoginUsername of string
     | UpdateLoginUserPw of string
+    // Server Msg
+    | InitialCountLoaded of Counter
+    | InitialUserLoaded of User
     | UpdateRegisterModel of RegisterModel
-    | UpdateExtraElement of ExtraReactElement
-    | Debug of string
-    | GetTestRequest of string
-    | GetTestResponse of Result<string, exn>
     | DotnetRegisterRequest of RegisterModel
     | DotnetRegisterResponse of Result<DotnetRegisterResults,exn>
     | DotnetLoginRequest of LoginModel
@@ -86,6 +85,8 @@ and Msg =
     | GetUserCounterResponse of Result<Counter,exn>
     | DeleteAccountRequest of LoginModel
     | DeleteAccountResponse of Result<DotnetDeleteAccountResults,exn>
+    | AddUsernameToExtLogin of string
+    | AddUsernameToExtLoginResponse of Result<DotnetChangeParameterResults,exn>
     | AdminGetAllUsersRequest
     | AdminGetAllUsersResponse of Result<User [],exn>
     | AdminRegisterUserRequest of RegisterModel * ActiveUserRoles
@@ -94,12 +95,10 @@ and Msg =
     | AdminChangeUserParamsResponse of Result<DotnetChangeParameterResults,exn>
     | AdminDeleteAccountRequest of LoginModel * User
     | AdminDeleteAccountResponse of Result<DotnetDeleteAccountResults,exn>
+    /// Msgs used for development
+    | Debug of string
     | GetContextClaimsRequest
     | GetContextClaimsResponse of Result<string,exn>
-    | AddUsernameToExtLogin of string
-    | AddUsernameToExtLoginResponse of Result<DotnetChangeParameterResults,exn>
-    | GetExternalLoginTest of string*string
-    | GetExternalLoginTestResponse of Result<string,exn>
 
 module ServerPath =
 

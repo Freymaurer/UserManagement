@@ -220,9 +220,9 @@ let dotnetUserLogOut (context: HttpContext) =
 
 let dotnetRegistration (registerModel:RegisterModel) (context: HttpContext) =
     task {
-        let  user        = IdentityUser(UserName = registerModel.Username, Email = registerModel.Email)
-        let  userManager = context.GetService<UserManager<IdentityUser>>()
-        let! result      = userManager.CreateAsync(user, registerModel.Password)
+        let user = IdentityUser(UserName = registerModel.Username, Email = registerModel.Email)
+        let userManager = context.GetService<UserManager<IdentityUser>>()
+        let! result = userManager.CreateAsync(user, registerModel.Password)
         match result.Succeeded with
         | false -> return (RegisterFail (showErrors result.Errors))
         | true  ->
