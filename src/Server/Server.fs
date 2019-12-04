@@ -126,7 +126,6 @@ let webApp =
         forward "" (setStatusCode 404 >=> text "Not Found")
     }
 
-
 /// Client ids and Client secrets
 let testGoogleId = "84896855857-3sq30njitdkb44mme3ksvh3vj829ei57.apps.googleusercontent.com"
 let testGoogleSecret = "jZWx6xzNKmMjUjQT7GZc7JJV"

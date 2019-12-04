@@ -285,7 +285,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 (Ok >> DotnetLogOutResponse)
                 (Error >> DotnetLogOutResponse)
         nextModel, cmd
-        /// 
+        ///
     | _, DotnetLogOutResponse (Ok value) ->
         let startModel,_ = init()
         let cmd =

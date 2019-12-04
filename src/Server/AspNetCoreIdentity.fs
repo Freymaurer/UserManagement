@@ -11,7 +11,6 @@ open FSharp.Control.Tasks
 open System.Security.Claims
 open System.Text
 
-
 // define custom claims
 module CustomClaims =
     let LoginMethod = "LoginMethod"
@@ -258,7 +257,6 @@ let adminUserRegistration (registerModel:RegisterModel) (role:ActiveUserRoles) (
                 | _,_ -> return (RegisterFail (showErrors result.Errors))
         } |> fun x -> x.Result
 
-
 // returns origin of user account (think: oauth or local authority)
 let checkAccountOrigin (ctx: HttpContext) =
     let checkOAuth = ctx.User.HasClaim (fun c -> c.Type = CustomClaims.LoginMethod && c.Value = LoginMethods.LocalAuthority)
@@ -270,7 +268,6 @@ let checkAccountOrigin (ctx: HttpContext) =
         |> Seq.filter (fun x -> x <> LoginMethods.LocalAuthority)
         |> Seq.groupBy (fun x -> x)
         |> fun x -> if Seq.length x > 1 then failwith "Unknown Claims issuer!" else x |> (Seq.head >> fst)
-
 
 open FSharp.Control.Tasks.V2.ContextInsensitive
 

@@ -33,5 +33,3 @@ let messageContainer (content:string) msg =
             ]
         ]
     ]
-
-

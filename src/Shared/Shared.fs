@@ -27,7 +27,6 @@ type ExternalLogin = {
     IsUsernameSet : bool
     }
 
-
 type User = {
     Username : string
     Email : string

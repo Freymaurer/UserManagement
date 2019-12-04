@@ -11,7 +11,6 @@ open Fable.FontAwesome
 open Client.Types
 open Client.View.Helper
 
-
 let inputRegisterBox inputElement header valueOrDefault msg =
     Box.box' [ Props [ Class "registerBox" ] ] [
         Text.div [ Props [ Style [ PaddingLeft "1rem" ] ] ] [
