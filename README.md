@@ -29,7 +29,7 @@ This allows to either use and InMemory storage of users or to use an Sql Server.
 
 ### Use Asp.Net Identity with an Sql Database
 
-The EFIdentityDummyProject is used to create the databases used by the Identity framework. To accomplish this, open the solution in Visual Studio -> Tools -> Nuget Package Manager -> Package Manager Console und navigate to the EFIdentityDummyProject - folder (use `dir` to check current location and `cd ThisCouldBeYourPath\EFIdentityDummyProject` to navigate to the folder containing the Startup.cs file) then type `Update-Database -Project EFIdentityDummyProject -StartupProject EFIdentityDummyProject` and the necessary databases will be build. 
+The EFIdentityDummyProject is used to create the databases used by the Identity framework. To accomplish this, open the solution in Visual Studio -> Tools -> Nuget Package Manager -> Package Manager Console and navigate to the EFIdentityDummyProject - folder (use `dir` to check current location and `cd ThisCouldBeYourPath\EFIdentityDummyProject` to navigate to the folder containing the Startup.cs file) then type `Update-Database -Project EFIdentityDummyProject -StartupProject EFIdentityDummyProject` and the necessary databases will be build. 
 ([source](https://docs.microsoft.com/de-de/ef/core/miscellaneous/cli/powershell))
 
 ## Work with the application
