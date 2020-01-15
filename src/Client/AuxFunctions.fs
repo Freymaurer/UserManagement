@@ -2,6 +2,8 @@ module Client.AuxFunctions
 
 open System
 
+let [<Literal>] ENTER_KEY = 13.
+
 /// function for similarity measurements
 let sorensenCoefficent (str1:string) (str2:string) =
     let charSeq1 = str1.ToCharArray()

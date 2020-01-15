@@ -12,8 +12,6 @@ open Fable.Core
 open Shared
 open Fable.FontAwesome
 
-let [<Literal>] ENTER_KEY = 13.
-
 type MainReactElement =
 | Welcome
 | Counter
