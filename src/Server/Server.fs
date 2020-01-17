@@ -127,14 +127,14 @@ let webApp =
     }
 
 /// Client ids and Client secrets
-let testGoogleId = "84896855857-3sq30njitdkb44mme3ksvh3vj829ei57.apps.googleusercontent.com"
-let testGoogleSecret = "jZWx6xzNKmMjUjQT7GZc7JJV"
+let testGoogleId = ""
+let testGoogleSecret = ""
 
-let testGithubId = "7aa4b09af402a61e6dbc"
-let testGithubSecret = "84260ae6515a87e101eb1e8a51d71bb91d980beb"
+let testGithubId = ""
+let testGithubSecret = ""
 
-let testOrcidId = "APP-P5S1R3ZBQWZL1NN9"
-let testOrcidSecret = "bc292a25-5492-45b0-9355-9745c545729a"
+let testOrcidId = ""
+let testOrcidSecret = ""
 
 open FSharp.Control.Tasks
 
@@ -147,7 +147,7 @@ let configureServices (services : IServiceCollection) =
     services.AddDbContext<IdentityDbContext>(
         fun options ->
             options.UseSqlServer(
-                @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=aspnet-EFIdentityDummyProject-5EB33349-BFC7-4D68-9488-5B635B1057A9;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False"
+                @""
             ) |> ignore
         ) |> ignore
 
