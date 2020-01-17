@@ -1,5 +1,3 @@
-using System;
-
 namespace EFIdentityDummyProject.Models
 {
     public class ErrorViewModel

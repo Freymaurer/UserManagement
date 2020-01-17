@@ -102,8 +102,7 @@ let webApp =
     let mustBeUserManager : HttpHandler =
         authorizeUser (
             fun u ->
-                u.HasClaim (ClaimTypes.Name, "Kevin")
-                || u.HasClaim (ClaimTypes.Role, "Developer")
+                u.HasClaim (ClaimTypes.Role, "Developer")
                 || u.HasClaim (ClaimTypes.Role, "Admin")
                 || u.HasClaim (ClaimTypes.Role, "UserManager")
         ) (
