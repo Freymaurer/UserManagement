@@ -34,6 +34,13 @@ The EFIdentityDummyProject is used to create the databases used by the Identity 
 
 ## Work with the application
 
+### Before Running
+
+In the Server.fs file (line 128 following) are Client Secrets and IDs for OAuth support, and in line 149 should be the connection string to the usermanagement database (the one created by the c# dummy project).
+Without the Client secrets and ids the oauth support will, obviously, not work and without the db connection string the whole application will not function.
+
+### Start
+
 To concurrently run the server and the client components in watch mode use the following command:
 
 ```bash
