@@ -1,8 +1,8 @@
 Microsoft.AspNetCore.Authentication.Google
 Microsoft.AspNetCore.Identity.EntityFrameworkCore
+Microsoft.AspNetCore.Identity.UI
 Microsoft.EntityFrameworkCore.SqlServer
 Microsoft.EntityFrameworkCore.Tools
-Microsoft.AspNetCore.Identity.UI
 group Server
     FSharp.Core
     Saturn

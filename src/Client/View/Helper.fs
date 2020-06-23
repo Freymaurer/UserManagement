@@ -5,6 +5,7 @@ open Fable.React.Props
 open Fulma
 
 open Client.Types
+open Client.AuxFunctions
 
 let onEnter msg dispatch =
     OnKeyDown (fun ev ->

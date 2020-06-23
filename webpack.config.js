@@ -1,4 +1,4 @@
-// Template for webpack.config.js in Fable projects
+﻿// Template for webpack.config.js in Fable projects
 // Find latest version in https://github.com/fable-compiler/webpack-config-template
 
 // In most cases, you'll only need to edit the CONFIG object (after dependencies)
@@ -24,13 +24,13 @@ var CONFIG = {
     // When using webpack-dev-server, you may need to redirect some calls
     // to a external API server. See https://webpack.js.org/configuration/dev-server/#devserver-proxy
     devServerProxy: {
-        // redirect requests that start with /api/* to the server on port 8085
-        '/api/*': {
+        // redirect requests that start with /api/ to the server on port 8085
+        '/api/**': {
             target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
                changeOrigin: true
            },
-        // redirect websocket requests that start with /socket/* to the server on the port 8085
-        '/socket/*': {
+        // redirect websocket requests that start with /socket/ to the server on the port 8085
+        '/socket/**': {
             target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
             ws: true
            }

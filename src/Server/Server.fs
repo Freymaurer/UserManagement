@@ -13,7 +13,6 @@ open Fable.Remoting.Giraffe
 
 open Microsoft.AspNetCore.Identity
 open Microsoft.AspNetCore.Http
-open Microsoft.AspNetCore.Identity.EntityFrameworkCore
 open Microsoft.EntityFrameworkCore
 open System.Security.Claims
 open Microsoft.AspNetCore.Authentication.Cookies
@@ -136,6 +135,7 @@ let testOrcidId = ""
 let testOrcidSecret = ""
 
 open FSharp.Control.Tasks
+open Microsoft.AspNetCore.Identity.EntityFrameworkCore
 
 ///https://github.com/giraffe-fsharp/Giraffe/blob/master/samples/IdentityApp/IdentityApp/Program.fs
 let configureServices (services : IServiceCollection) =
@@ -146,7 +146,7 @@ let configureServices (services : IServiceCollection) =
     services.AddDbContext<IdentityDbContext>(
         fun options ->
             options.UseSqlServer(
-                @""
+                @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=aspnet-EFIdentityDummyProject-B99201D9-CFB8-46BD-97A6-12887D2F02AA;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False"
             ) |> ignore
         ) |> ignore
 
@@ -181,101 +181,101 @@ let configureServices (services : IServiceCollection) =
             fun options ->
                 options.LogoutPath <- PathString "/api/logout"
             )
-        // source: https://www.eelcomulder.nl/2018/06/12/secure-your-giraffe-application-with-an-oauth-provider/
-        // https://developers.google.com/identity/protocols/OAuth2
-        .AddGoogle("Google",
-            fun options ->
-                options.ClientId <- testGoogleId
-                options.ClientSecret <- testGoogleSecret
+        //// source: https://www.eelcomulder.nl/2018/06/12/secure-your-giraffe-application-with-an-oauth-provider/
+        //// https://developers.google.com/identity/protocols/OAuth2
+        //.AddGoogle("Google",
+        //    fun options ->
+        //        options.ClientId <- testGoogleId
+        //        options.ClientSecret <- testGoogleSecret
 
-                let ev = options.Events
+        //        let ev = options.Events
 
-                ev.OnTicketReceived <-
-                    fun ctx ->
-                        let tsk = task {
-                            ctx.ReturnUri <- "/api/externalLoginCallback"
-                        }
-                        Task.Factory.StartNew(fun () -> tsk.Result)
-        )
+        //        ev.OnTicketReceived <-
+        //            fun ctx ->
+        //                let tsk = task {
+        //                    ctx.ReturnUri <- "/api/externalLoginCallback"
+        //                }
+        //                Task.Factory.StartNew(fun () -> tsk.Result)
+        //)
 
-        // source: https://github.com/SaturnFramework/Saturn/blob/master/src/Saturn.Extensions.Authorization/OAuth.fs
-        // https://github.com/settings/developers
-        .AddOAuth("GitHub",
-            fun (options:OAuth.OAuthOptions) ->
-                options.ClientId <- testGithubId
-                options.ClientSecret <- testGithubSecret
-                options.CallbackPath <- new PathString("/signin-github")
+        //// source: https://github.com/SaturnFramework/Saturn/blob/master/src/Saturn.Extensions.Authorization/OAuth.fs
+        //// https://github.com/settings/developers
+        //.AddOAuth("GitHub",
+        //    fun (options:OAuth.OAuthOptions) ->
+        //        options.ClientId <- testGithubId
+        //        options.ClientSecret <- testGithubSecret
+        //        options.CallbackPath <- new PathString("/signin-github")
 
-                options.AuthorizationEndpoint <- "https://github.com/login/oauth/authorize"
-                options.TokenEndpoint <- "https://github.com/login/oauth/access_token"
-                options.UserInformationEndpoint <- "https://api.github.com/user"
+        //        options.AuthorizationEndpoint <- "https://github.com/login/oauth/authorize"
+        //        options.TokenEndpoint <- "https://github.com/login/oauth/access_token"
+        //        options.UserInformationEndpoint <- "https://api.github.com/user"
 
-                options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name")
-                options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id")
-                options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email")
-                options.ClaimActions.MapJsonKey(ClaimTypes.Locality, "location")
+        //        options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name")
+        //        options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier, "id")
+        //        options.ClaimActions.MapJsonKey(ClaimTypes.Email, "email")
+        //        options.ClaimActions.MapJsonKey(ClaimTypes.Locality, "location")
 
-                let ev = options.Events
-                ev.OnTicketReceived <-
-                    fun ctx ->
-                        let tsk = task {
-                            ctx.ReturnUri <- "/api/externalLoginCallback"
-                        }
-                        Task.Factory.StartNew(fun () -> tsk.Result)
-                ev.OnCreatingTicket <-
-                    fun ctx ->
-                      let tsk = task {
-                        let req = new HttpRequestMessage(HttpMethod.Get, ctx.Options.UserInformationEndpoint)
-                        req.Headers.Accept.Add(MediaTypeWithQualityHeaderValue("application/json"))
-                        req.Headers.Authorization <- AuthenticationHeaderValue("Bearer", ctx.AccessToken)
-                        let! (response : HttpResponseMessage) = ctx.Backchannel.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ctx.HttpContext.RequestAborted)
-                        response.EnsureSuccessStatusCode () |> ignore
-                        let! cnt = response.Content.ReadAsStringAsync()
-                        let user = JsonDocument.Parse cnt |> fun x -> x.RootElement
-                        ctx.RunClaimActions user
-                      }
-                      Task.Factory.StartNew(fun () -> tsk.Result)
-        )
-        /// source: https://members.orcid.org/api/tutorial/get-orcid-id
-        .AddOAuth("Orcid",
-            fun (options:OAuth.OAuthOptions) ->
-                options.ClientId <- testOrcidId
-                options.ClientSecret <- testOrcidSecret
-                options.CallbackPath <- new PathString("/signin-orcid")
-                options.Scope.Add "/authenticate"//"openid" ///"/read-limited" needs member api - 6.5k annual
+        //        let ev = options.Events
+        //        ev.OnTicketReceived <-
+        //            fun ctx ->
+        //                let tsk = task {
+        //                    ctx.ReturnUri <- "/api/externalLoginCallback"
+        //                }
+        //                Task.Factory.StartNew(fun () -> tsk.Result)
+        //        ev.OnCreatingTicket <-
+        //            fun ctx ->
+        //              let tsk = task {
+        //                let req = new HttpRequestMessage(HttpMethod.Get, ctx.Options.UserInformationEndpoint)
+        //                req.Headers.Accept.Add(MediaTypeWithQualityHeaderValue("application/json"))
+        //                req.Headers.Authorization <- AuthenticationHeaderValue("Bearer", ctx.AccessToken)
+        //                let! (response : HttpResponseMessage) = ctx.Backchannel.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ctx.HttpContext.RequestAborted)
+        //                response.EnsureSuccessStatusCode () |> ignore
+        //                let! cnt = response.Content.ReadAsStringAsync()
+        //                let user = JsonDocument.Parse cnt |> fun x -> x.RootElement
+        //                ctx.RunClaimActions user
+        //              }
+        //              Task.Factory.StartNew(fun () -> tsk.Result)
+        //)
+        ///// source: https://members.orcid.org/api/tutorial/get-orcid-id
+        //.AddOAuth("Orcid",
+        //    fun (options:OAuth.OAuthOptions) ->
+        //        options.ClientId <- testOrcidId
+        //        options.ClientSecret <- testOrcidSecret
+        //        options.CallbackPath <- new PathString("/signin-orcid")
+        //        options.Scope.Add "/authenticate"//"openid" ///"/read-limited" needs member api - 6.5k annual
 
-                options.AuthorizationEndpoint <- "https://orcid.org/oauth/authorize"
-                options.TokenEndpoint <- "https://orcid.org/oauth/token"
-                /////the outcommented code needs the "openid" scope
-                //options.UserInformationEndpoint <- "https://orcid.org/oauth/userinfo"
+        //        options.AuthorizationEndpoint <- "https://orcid.org/oauth/authorize"
+        //        options.TokenEndpoint <- "https://orcid.org/oauth/token"
+        //        /////the outcommented code needs the "openid" scope
+        //        //options.UserInformationEndpoint <- "https://orcid.org/oauth/userinfo"
 
-                options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name")
-                options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier,"orcid")
+        //        options.ClaimActions.MapJsonKey(ClaimTypes.Name, "name")
+        //        options.ClaimActions.MapJsonKey(ClaimTypes.NameIdentifier,"orcid")
 
-                let ev = options.Events
-                ev.OnTicketReceived <-
-                    fun ctx ->
-                        let tsk = task {
-                            ctx.ReturnUri <- "/api/externalLoginCallback"
-                        }
-                        Task.Factory.StartNew(fun () -> tsk.Result)
-                ev.OnCreatingTicket <-
-                    fun ctx ->
-                        let tsk = task {
-                        /////the outcommented code needs the "openid" scope
-                            //let req = new HttpRequestMessage(HttpMethod.Get, ctx.Options.UserInformationEndpoint)
-                            //req.Headers.Accept.Add(MediaTypeWithQualityHeaderValue("application/json"))
-                            //req.Headers.Authorization <- AuthenticationHeaderValue("Bearer", ctx.AccessToken)
-                            //let! (response : HttpResponseMessage) = ctx.Backchannel.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ctx.HttpContext.RequestAborted)
-                            //response.EnsureSuccessStatusCode () |> ignore
-                            //let! cnt = response.Content.ReadAsStringAsync()
-                            //let user = JsonDocument.Parse cnt |> fun x -> x.RootElement
-                            //ctx.RunClaimActions user
-                            let claims = ctx.TokenResponse.Response.RootElement
-                            ctx.RunClaimActions claims
-                        }
-                        Task.Factory.StartNew(fun () -> tsk.Result)
-        )
+        //        let ev = options.Events
+        //        ev.OnTicketReceived <-
+        //            fun ctx ->
+        //                let tsk = task {
+        //                    ctx.ReturnUri <- "/api/externalLoginCallback"
+        //                }
+        //                Task.Factory.StartNew(fun () -> tsk.Result)
+        //        ev.OnCreatingTicket <-
+        //            fun ctx ->
+        //                let tsk = task {
+        //                /////the outcommented code needs the "openid" scope
+        //                    //let req = new HttpRequestMessage(HttpMethod.Get, ctx.Options.UserInformationEndpoint)
+        //                    //req.Headers.Accept.Add(MediaTypeWithQualityHeaderValue("application/json"))
+        //                    //req.Headers.Authorization <- AuthenticationHeaderValue("Bearer", ctx.AccessToken)
+        //                    //let! (response : HttpResponseMessage) = ctx.Backchannel.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ctx.HttpContext.RequestAborted)
+        //                    //response.EnsureSuccessStatusCode () |> ignore
+        //                    //let! cnt = response.Content.ReadAsStringAsync()
+        //                    //let user = JsonDocument.Parse cnt |> fun x -> x.RootElement
+        //                    //ctx.RunClaimActions user
+        //                    let claims = ctx.TokenResponse.Response.RootElement
+        //                    ctx.RunClaimActions claims
+        //                }
+        //                Task.Factory.StartNew(fun () -> tsk.Result)
+        //)
         |> ignore
 
     //adds authentification for normal Asp.net core identity model
