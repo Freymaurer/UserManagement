@@ -26,6 +26,26 @@ To concurrently run the server and the client components in watch mode use the f
 dotnet fake build -t run
 ```
 
+### Authentication and Authorization
+
+This example app for fsharp UserManagement in a [SAFE](https://safe-stack.github.io/docs/intro/) stack environmant is originally based on [ASP.NET Core](https://docs.microsoft.com/de-de/aspnet/core/security/?view=aspnetcore-3.1), This is
+wrapped in a functional first approach by the F# web framework [Giraffe](https://github.com/giraffe-fsharp/Giraffe/blob/master/DOCUMENTATION.md#authentication-and-authorization). Ob top of both is the [Saturn](https://saturnframework.org/explanations/pipeline.html)
+library built. This provides an additonal set of optional abstractions which make configuring web applications and constructing complex routes extremely easy to achieve.
+
+So what is nshow in this example is how to use/access cookie-based ASP.NET Authentication and Authorization functions from Giraffe and Saturn. The basic functions necessary to manage user logins and more are included in 'AspNetCoreIdentity.fs' These feature for example:
+
+- Creating and deleting accounts
+- Changing Account information
+- Admin based change of account information
+- OAuth for Google, GitHub and Orcid
+
+In addition this repo can give an idea on how to use Fable.Remoting in combination with Authentication and Authorization.
+
+
+### Use Asp.Net Identity with an Sql Database
+
+The EFIdentityDummyProject is used to create the databases used by the Identity framework. To accomplish this, open the solution in Visual Studio -> Tools -> Nuget Package Manager -> Package Manager Console und navigate to the EFIdentityDummyProject - folder (use `dir` to check current location and `cd ThisCouldBeYourPath\EFIdentityDummyProject` to navigate to the folder containing the Startup.cs file) then type `Update-Database -Project EFIdentityDummyProject -StartupProject EFIdentityDummyProject` and the necessary databases will be build. 
+([source](https://docs.microsoft.com/de-de/ef/core/miscellaneous/cli/powershell))
 
 ## SAFE Stack Documentation
 

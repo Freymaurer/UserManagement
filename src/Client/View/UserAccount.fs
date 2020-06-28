@@ -91,10 +91,10 @@ let inputRoleAdmin (model:Model) dispatch =
                 ]
                 Dropdown.menu [ ] [
                     Dropdown.content [ ] [
-                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (UpdateInputString (string ActiveUserRoles.Admin))) ] ] [ str "Admin" ]
-                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (UpdateInputString (string ActiveUserRoles.UserManager))) ] ] [ str "UserManager" ]
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (UpdateInputString (string Roles.Admin))) ] ] [ str "Admin" ]
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (UpdateInputString (string Roles.UserManager))) ] ] [ str "UserManager" ]
                         Dropdown.divider [ ]
-                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (UpdateInputString (string ActiveUserRoles.User))) ] ] [ str "User" ]
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (UpdateInputString (string Roles.User))) ] ] [ str "User" ]
                     ]
                 ]
             ]
@@ -144,7 +144,7 @@ let userAccountElement model (dispatch : Msg -> unit) (user:User) =
                         Heading.h6 [Heading.IsSubtitle][str (string user.Role)]
                     ]
                     Column.column [ Column.Modifiers [Modifier.TextAlignment (Screen.All,TextAlignment.Right)] ][
-                        (if AuxFunctions.authentificationLevelByUser model.User >= 5 && isNotGuest user then Button.a [Button.OnClick (fun _ -> dispatch (UpdateExtraElement extraElementRole))][str "Change"] else str "")
+                        (if Roles.checkRoleAuth model.User.Value.Role UserManager && isNotGuest user then Button.a [Button.OnClick (fun _ -> dispatch (UpdateExtraElement extraElementRole))][str "Change"] else str "")
                     ]
                 ]
                 Columns.columns [][

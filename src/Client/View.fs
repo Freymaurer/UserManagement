@@ -55,7 +55,7 @@ let view (model : Model) (dispatch : Msg -> unit) =
             | Counter -> Counter.counter model dispatch
             | UserAccount user -> UserAccount.userAccountElement model dispatch user
             | UserList -> Userlist.displayAllUsersElement model dispatch
-            | _ -> Placeholder.constructionLabel model dispatch
+            //| _ -> Placeholder.constructionLabel model dispatch
         )
         //Button.button [Button.OnClick (fun _ -> dispatch GetContextClaimsRequest)][str "Get Claims"]
         Footer.footer [ ]

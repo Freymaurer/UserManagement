@@ -13,14 +13,38 @@ module OAuthSigninPaths =
     let orcidOAuth = "/api/orcid-auth"
 
 // allowed roles a user could have
-type ActiveUserRoles =
+type Roles =
 | Developer
 | Admin
 | UserManager
 | User
 | Guest
-| All
-| NoRole
+
+    static member stringToRole (str:string) =
+        match str with
+        | "developer" | "Developer" -> Developer
+        | "admin" | "Admin" -> Admin
+        | "usermanager" | "UserManager" -> UserManager
+        | "user" | "User" -> User
+        | "guest" | "Guest" -> Guest
+        | _ -> failwith "not a valid role"
+
+    static member roleAuthArray =
+        [|
+            Developer
+            Admin
+            Roles.UserManager
+            User
+            Guest
+        |]
+
+    /// a function to check if userRole should be allowed to apply changes to userRole2. Returns 'true' if role level is equal or higher than role2. 
+    static member checkRoleAuth userRole userRole2=
+        let role1 = Array.findIndex (fun x -> x = userRole) Roles.roleAuthArray
+        let role2 = Array.findIndex (fun x -> x = userRole2) Roles.roleAuthArray
+        // lower index = higher role auth
+        role1 <= role2
+
 
 type ExternalLogin = {
     IsTrue : bool
@@ -30,7 +54,7 @@ type ExternalLogin = {
 type User = {
     Username : string
     Email : string
-    Role : ActiveUserRoles
+    Role : Roles
     AccountOrigin : string
     UniqueId : string
     ExtLogin : ExternalLogin
@@ -107,34 +131,7 @@ type IDotnetSecureApi = {
 
 type IAdminSecureApi = {
     dotnetGetAllUsers : unit -> Async<User []>
-    adminRegisterUser : RegisterModel*ActiveUserRoles -> Async<DotnetRegisterResults>
+    adminRegisterUser : RegisterModel*Roles -> Async<DotnetRegisterResults>
     adminDeleteAccount : LoginModel * User -> Async<DotnetDeleteAccountResults>
     adminChangeUserParameters : LoginModel * User * UserParameters * string -> Async<DotnetChangeParameterResults>
 }
-
-module AuxFunctions =
-
-    let stringToRoles (str:string) =
-        match str with
-        | "Developer" -> Developer
-        | "Admin" -> Admin
-        | "UserManager" -> UserManager
-        | "User" -> User
-        | _ -> Guest
-
-    let authentificationLevelByUser (user:User option)=
-        if user.IsNone then 0 else
-        match user.Value.Role with
-        | Developer -> 10
-        | Admin -> 8
-        | UserManager -> 5
-        | User -> 2
-        | _ -> 0
-
-    let authentificationLevelByRole (role:string)=
-        match role with
-        | "Developer" -> 10
-        | "Admin" -> 8
-        | "UserManager" -> 5
-        | "User" -> 2
-        | _ -> 0

@@ -22,8 +22,10 @@ let subMenu label children =
     ]
 
 let menu (model:Model) dispatch =
-    let hideElementsBy threshold=
-        Screen.All, if AuxFunctions.authentificationLevelByUser model.User >= threshold then false else true
+    let hideElementsIfAuthLowerThan threshold =
+        let checkAut =
+            if model.User.IsNone then false else Roles.checkRoleAuth model.User.Value.Role threshold |> not
+        Screen.All, checkAut
     let unAuthenticated =
         div [
             Style [BackgroundColor "white";PaddingTop "1rem";PaddingLeft "1rem";Height "100%";]
@@ -41,14 +43,14 @@ let menu (model:Model) dispatch =
             Menu.list [ ] [
                 menuItem "Home" (fun _ -> dispatch (ChangeMainReactElement Welcome))
                 menuItem "Account Information" (fun _ -> dispatch (ChangeMainReactElement (UserAccount model.User.Value))) ]
-            Menu.label [ Modifiers [Modifier.IsHidden (hideElementsBy 5)] ] [ str "Account Management" ]
-            Menu.list [ Modifiers [Modifier.IsHidden (hideElementsBy 5)] ] [
+            Menu.label [ Modifiers [Modifier.IsHidden (hideElementsIfAuthLowerThan Roles.UserManager)] ] [ str "Account Management" ]
+            Menu.list [ Modifiers [Modifier.IsHidden (hideElementsIfAuthLowerThan Roles.UserManager)] ] [
                 menuItem "User List"  (fun _ ->
                 dispatch AdminGetAllUsersRequest
                 dispatch (ChangeMainReactElement UserList))
             ]
-            Menu.label [ Modifiers [Modifier.IsHidden (hideElementsBy 10)] ] [str "Debug"]
-            Menu.list [Modifiers [Modifier.IsHidden (hideElementsBy 10)]]
+            Menu.label [ Modifiers [Modifier.IsHidden (hideElementsIfAuthLowerThan Developer)] ] [str "Debug"]
+            Menu.list [Modifiers [Modifier.IsHidden (hideElementsIfAuthLowerThan Developer)]]
                 [menuItem "Test Counter" (fun _ -> dispatch (ChangeMainReactElement Counter))]
         ]
     match model.Authenticated with

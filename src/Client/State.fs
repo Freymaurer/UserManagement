@@ -22,9 +22,9 @@ let init () : Model * Cmd<Msg> =
         MainReactElement = Counter
         ShowMenuBool = false
         AdminUserList = [||]
-        AdminUserListRoleFilter = All
+        AdminUserListRoleFilter = None
         AdminViewUser = None
-        AdminAssignRole = NoRole
+        AdminAssignRole = None
     }
     let loadCountCmd =
         Cmd.OfAsync.perform
@@ -78,7 +78,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
             currentModel with
                 LoginModel = {Username = ""; Password = ""}
                 RegisterModel = {Username = "";Password = "";Email = ""}
-                AdminAssignRole = NoRole
+                AdminAssignRole = None
         }
         nextModel, Cmd.none
         ///
@@ -141,7 +141,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
         nextModel, Cmd.none
         ///
     | _, UpdateExtraElement (element) ->
-        let nextModel = { currentModel with ExtraReactElement = element }
+        let nextModel = { currentModel with ExtraReactElement = element; InputString = "" }
         nextModel,Cmd.none
         // functions to handle user registration
         ///
@@ -478,7 +478,9 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
                 currentModel with
                     Loading = false
                     MainReactElement = UserList
+                    ExtraReactElement = ExtraReactElement.EmptyElement
                     LoginModel = {Username = "";Password = ""}
+                    InputString = ""
             }
             nextModel,Cmd.ofMsg AdminGetAllUsersRequest
         | ChangeParamFail str ->
@@ -494,6 +496,7 @@ let update (msg : Msg) (currentModel : Model) : Model * Cmd<Msg> =
             currentModel with
                 Loading = false
                 ExtraReactElement = Message e.Message
+                InputString = ""
         }
         nextModel,Cmd.none
         ///

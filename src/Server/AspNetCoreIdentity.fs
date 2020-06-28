@@ -11,6 +11,22 @@ open FSharp.Control.Tasks
 open System.Security.Claims
 open System.Text
 
+let roleAuthArray =
+    [|
+        Developer
+        Admin
+        Roles.UserManager
+        User
+        Guest
+    |]
+
+/// a function to check if userRole should be allowed to apply changes to userRole2. Returns 'true' if role level is equal or higher than role2. 
+let checkRoleAuth userRole userRole2=
+    let role1 = Array.findIndex (fun x -> x = userRole) roleAuthArray
+    let role2 = Array.findIndex (fun x -> x = userRole2) roleAuthArray
+    // lower index = higher role auth
+    role1 <= role2
+
 // define custom claims
 module CustomClaims =
     let LoginMethod = "LoginMethod"
@@ -30,7 +46,9 @@ let showErrors (errors : IdentityError seq) =
     |> (fun x -> x.ToString())
 
 open Microsoft.AspNetCore.Authentication
+open Microsoft.AspNetCore.WebUtilities
 
+/// https://docs.microsoft.com/de-de/aspnet/core/security/authentication/identity?view=aspnetcore-3.1&tabs=visual-studio
 let dotnetLogin (user:LoginModel) (contextPre: HttpContext) =
     let prevSignOut (ctx: HttpContext) =
         task {
@@ -45,7 +63,7 @@ let dotnetLogin (user:LoginModel) (contextPre: HttpContext) =
     | _,_ ->
         task {
             let signInManager = context.GetService<SignInManager<IdentityUser>>()
-            let! result = signInManager.PasswordSignInAsync(user.Username, user.Password, true, false)
+            let! result = signInManager.PasswordSignInAsync(user.Username, user.Password, true, true)
             match result.Succeeded with
             | true ->
                return LoginSuccess
@@ -105,10 +123,13 @@ let dotnetChangeUserParams (loginModel:LoginModel) (userParameter:UserParameters
                     | Email -> userManager.SetEmailAsync(user,input)
                     | Username -> userManager.SetUserNameAsync(user,input)
                     | Password ->
-                        let updateResult =
+                        let pwValidation = PasswordValidator<IdentityUser>().ValidateAsync(userManager, user, input)
+                        match pwValidation.Result.Succeeded with
+                        | true ->
                             let hashPw = userManager.PasswordHasher.HashPassword(user, input)
                             user.PasswordHash <- hashPw
-                        userManager.UpdateAsync(user)
+                            userManager.UpdateAsync(user)
+                        | false -> failwithf "%A" pwValidation.Result.Errors
                     | _ -> failwith "Parameter to change can not be recognized"
                 match updateResult.Succeeded with
                 | true ->
@@ -122,8 +143,8 @@ let dotnetChangeUserParams (loginModel:LoginModel) (userParameter:UserParameters
     else ChangeParamFail "Error 401 Access Denied"
 
 let adminChangeUserParams (loginModel:LoginModel) (userInput:User) (userParameter:UserParameters) (input:string) (context: HttpContext) =
-    let contextUserAuthentificationLevel =
-        context.User.Claims |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> snd |> AuxFunctions.authentificationLevelByRole
+    let contextUserRole =
+        context.User.Claims |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> snd |> Roles.stringToRole
     if context.User.HasClaim (ClaimTypes.Role,"Developer") || context.User.HasClaim (ClaimTypes.Role,"Admin") || context.User.HasClaim (ClaimTypes.Role,"UserManager")
     then
         task {
@@ -135,9 +156,11 @@ let adminChangeUserParams (loginModel:LoginModel) (userInput:User) (userParamete
                 let! findByName = userManager.FindByNameAsync(userInput.Username)
                 let! findByEmail = userManager.FindByEmailAsync(userInput.Email)
                 let user = if findByName = findByEmail then findByName else failwith "Username and Email do not correlate"
-                let! getRole = (userManager.GetClaimsAsync(user))
+                let! getRole =
+                    userManager.GetClaimsAsync(user)
+                /// check if the user attempting to change the account should have auth over said the other user. 
                 let checkAuthentification =
-                    if AuxFunctions.authentificationLevelByRole (string userInput.Role) >= contextUserAuthentificationLevel then failwith "Error 401 Access Denied; 01"
+                    if checkRoleAuth contextUserRole userInput.Role |> not then failwith "Error 401 Access Denied; 01"
                 let! updateResult =
                     match userParameter with
                     | Email -> userManager.SetEmailAsync(user,input)
@@ -148,9 +171,13 @@ let adminChangeUserParams (loginModel:LoginModel) (userInput:User) (userParamete
                             user.PasswordHash <- hashPw
                         userManager.UpdateAsync(user)
                     | Role ->
-                        let role = getRole |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> snd
+                        /// check if the user attempting to change the role of another user should be allowed to give access to the role he wants to set.
                         let checkNewRole =
-                            if AuxFunctions.authentificationLevelByRole input >= contextUserAuthentificationLevel then failwith "Error 401 Access Denied; 02"
+                            let inputToRole =
+                                Roles.stringToRole input
+                            if checkRoleAuth contextUserRole inputToRole |> not then failwith "Error 401 Access Denied; 02"
+                        /// get current role, as it's needed to replace it with new role.
+                        let role = getRole |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> snd
                         userManager.ReplaceClaimAsync(user, new Claim(ClaimTypes.Role,role), new Claim(ClaimTypes.Role, input))
                 match updateResult.Succeeded with
                 | true ->
@@ -174,7 +201,7 @@ let dotnetGetUser (context: HttpContext) =
             let extLogin =
                 claims |> List.tryFind (fun (claimType,value) -> claimType = CustomClaims.IsUsernameSet)
                 |> fun x -> if x.IsSome then { IsTrue = true; IsUsernameSet = bool.Parse(x.Value |> snd) } else { IsTrue = false; IsUsernameSet = true }
-            let role = claims |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Shared.AuxFunctions.stringToRoles)
+            let role = claims |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Roles.stringToRole)
             let origin = claims |> List.find (fun (claimType,value) -> claimType = CustomClaims.LoginMethod) |> snd
             return { Username = user.UserName; Email = user.Email; Role = role; AccountOrigin = origin; UniqueId = user.Id; ExtLogin = extLogin }
         } |> fun x -> x.Result
@@ -188,7 +215,7 @@ let dotnetGetAllUsers (context: HttpContext) =
             |> Array.map (
                 fun x ->
                     let claims = userManager.GetClaimsAsync(x) |> fun x -> x.Result |> Seq.map (fun x -> x.Type,x.Value) |> List.ofSeq
-                    let role = claims |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Shared.AuxFunctions.stringToRoles)
+                    let role = claims |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Roles.stringToRole)
                     let origin = claims |> List.find (fun (claimType,value) -> claimType = CustomClaims.LoginMethod) |> snd
                     let extLogin =
                         claims |> List.tryFind (fun (claimType,value) -> claimType = ClaimTypes.NameIdentifier)
@@ -206,13 +233,8 @@ let dotnetGetAllUsers (context: HttpContext) =
     } |> fun x -> x.Result
 
 let dotnetUserLogOut (context: HttpContext) =
-    let prevSignOut (ctx: HttpContext) =
-        task {
-            do! ctx.SignOutAsync("Cookies")
-            return ctx
-        } |> fun x -> x.Result
     task {
-        let signInManager = (prevSignOut context).GetService<SignInManager<IdentityUser>>()
+        let signInManager = context.GetService<SignInManager<IdentityUser>>()
         do! signInManager.SignOutAsync()
         return LogoutSuccess
     } |> fun x -> x.Result
@@ -225,7 +247,15 @@ let dotnetRegistration (registerModel:RegisterModel) (context: HttpContext) =
         match result.Succeeded with
         | false -> return (RegisterFail (showErrors result.Errors))
         | true  ->
-            let! addingClaims = userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, (string ActiveUserRoles.Guest)))
+            //let! emailConfirmToken =
+            //    userManager.GenerateEmailConfirmationTokenAsync(user)
+            //let encodedEmailConfirmtoken =
+            //    WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(emailConfirmToken))
+            /// check if already users exist. If not create admin. If there is only 1 user, then it is the one just created 4 lines above
+            let! userCount = userManager.Users.CountAsync()
+            let role = if userCount = 1 then Roles.Admin else Roles.Guest
+            let! addingClaims = userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, (string role)))
+            ///
             let! addingClaims2 =
                 userManager.AddClaimAsync(user, new Claim(CustomClaims.LoginMethod, LoginMethods.LocalAuthority))
             match addingClaims.Succeeded,addingClaims2.Succeeded with
@@ -237,7 +267,7 @@ let dotnetRegistration (registerModel:RegisterModel) (context: HttpContext) =
             | _,_ -> return (RegisterFail (showErrors result.Errors))
     } |> fun x -> x.Result
 
-let adminUserRegistration (registerModel:RegisterModel) (role:ActiveUserRoles) (context: HttpContext) =
+let adminUserRegistration (registerModel:RegisterModel) (role:Roles) (context: HttpContext) =
     if role = Developer || role = Guest
     then RegisterFail "Cannot create a new user with the given role."
     else
@@ -318,27 +348,27 @@ module OAuth =
                     let userManager = ctx.GetService<UserManager<IdentityUser>>()
                     let! createResult = userManager.CreateAsync(user)
                     match createResult.Succeeded with
+                        | true ->
+                            let info = UserLoginInfo(issuer,uniqueIdent,issuer)
+                            let! addLoginResult = userManager.AddLoginAsync(user,info)
+                            match addLoginResult.Succeeded with
                             | true ->
-                                let info = UserLoginInfo(issuer,uniqueIdent,issuer)
-                                let! addLoginResult = userManager.AddLoginAsync(user,info)
-                                match addLoginResult.Succeeded with
-                                | true ->
-                                    let! addClaims =
-                                        userManager.AddClaimsAsync(user,[
-                                                Claim(
-                                                    ClaimTypes.Role,"Guest",ClaimValueTypes.String,LoginMethods.LocalAuthority
-                                                );
-                                                Claim(
-                                                    CustomClaims.LoginMethod,issuer,ClaimValueTypes.String,LoginMethods.LocalAuthority
-                                                )
-                                                Claim(
-                                                    CustomClaims.IsUsernameSet,"false",ClaimValueTypes.Boolean,LoginMethods.LocalAuthority
-                                                )
-                                        ])
-                                    let! signinResult = signinManager.SignInAsync(user,true)
-                                    return! next ctx
-                                | false -> return failwith "ExternalLoginFail AddLogin failed"
-                            | false -> return failwith "ExternalLoginFail CreateUser failed"
+                                let! addClaims =
+                                    userManager.AddClaimsAsync(user,[
+                                            Claim(
+                                                ClaimTypes.Role,"Guest",ClaimValueTypes.String,LoginMethods.LocalAuthority
+                                            );
+                                            Claim(
+                                                CustomClaims.LoginMethod,issuer,ClaimValueTypes.String,LoginMethods.LocalAuthority
+                                            )
+                                            Claim(
+                                                CustomClaims.IsUsernameSet,"false",ClaimValueTypes.Boolean,LoginMethods.LocalAuthority
+                                            )
+                                    ])
+                                let! signinResult = signinManager.SignInAsync(user,true)
+                                return! next ctx
+                            | false -> return failwith "ExternalLoginFail AddLogin failed"
+                        | false -> return failwith "ExternalLoginFail CreateUser failed"
                 | true ->
                     return! next ctx
             }

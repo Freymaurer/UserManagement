@@ -50,14 +50,14 @@ let displayAllUsersNavbar model dispatch =
                 Navbar.Item.Props [Style [MarginLeft "auto";Padding "3px"]]
                 Navbar.Item.HasDropdown; Navbar.Item.IsHoverable;
             ] [
-                Navbar.Link.a [] [ str (if model.AdminUserListRoleFilter = All then "Role-Filter" else string model.AdminUserListRoleFilter) ]
+                Navbar.Link.a [] [ str (if model.AdminUserListRoleFilter = None then "Role-Filter" else string model.AdminUserListRoleFilter) ]
                 Navbar.Dropdown.div [ ] [
-                    dropdownNavbarButtonSize "All" (fun _ -> dispatch (FilterAllUserList All))
+                    dropdownNavbarButtonSize "All" (fun _ -> dispatch (FilterAllUserList None))
                     Dropdown.divider []
-                    dropdownNavbarButtonSize "User" (fun _ -> dispatch (FilterAllUserList User))
-                    dropdownNavbarButtonSize "UserManager" (fun _ -> dispatch (FilterAllUserList UserManager))
-                    dropdownNavbarButtonSize "Admin" (fun _ -> dispatch (FilterAllUserList Admin))
-                    dropdownNavbarButtonSize "Developer" (fun _ -> dispatch (FilterAllUserList Developer))
+                    dropdownNavbarButtonSize "User" (fun _ -> dispatch (FilterAllUserList (Some User)))
+                    dropdownNavbarButtonSize "UserManager" (fun _ -> dispatch (FilterAllUserList (Some UserManager)))
+                    dropdownNavbarButtonSize "Admin" (fun _ -> dispatch (FilterAllUserList (Some Admin)))
+                    dropdownNavbarButtonSize "Developer" (fun _ -> dispatch (FilterAllUserList (Some Developer)))
                 ]
             ]
         ]
@@ -96,7 +96,7 @@ let displayAllUsersElement (model:Model) dispatch =
                 ]
                 tbody []
                     (model.AdminUserList
-                    |> Array.filter (fun x -> if model.AdminUserListRoleFilter = All then x = x else x.Role = model.AdminUserListRoleFilter)
+                    |> Array.filter (fun x -> if model.AdminUserListRoleFilter = None then x = x else x.Role = model.AdminUserListRoleFilter.Value)
                     |> (Array.collect (fun userVal -> displayUser userVal dispatch)
                         >> List.ofArray)
                     )

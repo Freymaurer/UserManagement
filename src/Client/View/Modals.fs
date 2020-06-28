@@ -202,23 +202,23 @@ let adminRegisterModal model dispatch =
             Dropdown.dropdown [ Dropdown.IsHoverable;Dropdown.IsUp] [
                 div [ ] [
                     Button.button [ Button.Modifiers [Modifier.BackgroundColor IsWhiteTer] ] [
-                        span [ ] [ str (if model.AdminAssignRole = Guest then "Role" else string model.AdminAssignRole) ]
+                        span [ ] [ str (if model.AdminAssignRole = None then "Role" else string model.AdminAssignRole) ]
                         Icon.icon [ Icon.Size IsSmall ] [ Fa.i [ Fa.Solid.AngleDown ] [ ] ]
                     ]
                 ]
                 Dropdown.menu [ ] [
                     Dropdown.content [ ] [
-                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (AdminSelectAssignRole ActiveUserRoles.Admin)) ] ] [ str "Admin" ]
-                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (AdminSelectAssignRole ActiveUserRoles.UserManager)) ] ] [ str "UserManager" ]
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (AdminSelectAssignRole (Some Roles.Admin))) ] ] [ str "Admin" ]
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (AdminSelectAssignRole (Some Roles.UserManager))) ] ] [ str "UserManager" ]
                         Dropdown.divider [ ]
-                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (AdminSelectAssignRole ActiveUserRoles.User)) ] ] [ str "User" ]
+                        Dropdown.Item.a [ Dropdown.Item.Props [OnClick (fun _ -> dispatch (AdminSelectAssignRole (Some Roles.User))) ] ] [ str "User" ]
                     ]
                 ]
             ]
         ]
     Modal.modal [
         Modal.IsActive true
-        Modal.Props [onEnter (AdminRegisterUserRequest (model.RegisterModel,model.AdminAssignRole)) dispatch]
+        Modal.Props [onEnter (AdminRegisterUserRequest (model.RegisterModel,model.AdminAssignRole.Value)) dispatch]
     ] [
         Modal.background [ Props [OnClick (fun _ -> dispatch (UpdateExtraElement EmptyElement) )] ] [ ]
         Modal.Card.card [
@@ -263,8 +263,8 @@ let adminRegisterModal model dispatch =
                     Column.column [] [
                         Button.button [
                             Button.Color IsInfo
-                            (if model.RegisterModel.Username = "" || model.RegisterModel.Password = "" || model.RegisterModel.Email = "" || model.AdminAssignRole = Guest then Button.Disabled true else Button.Disabled false )
-                            Button.OnClick (fun _ -> dispatch (AdminRegisterUserRequest (model.RegisterModel,model.AdminAssignRole)))
+                            (if model.RegisterModel.Username = "" || model.RegisterModel.Password = "" || model.RegisterModel.Email = "" || model.AdminAssignRole = None then Button.Disabled true else Button.Disabled false )
+                            Button.OnClick (fun _ -> dispatch (AdminRegisterUserRequest (model.RegisterModel,model.AdminAssignRole.Value)))
                         ][
                             str "Register"
                         ]

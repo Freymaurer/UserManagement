@@ -14,18 +14,22 @@ let sorensenCoefficent (str1:string) (str2:string) =
     let mutable str2Mut = str2
     let numberOfCommonSpecies1 =
         charSeq1
-        |> Array.map (fun x -> (str2Mut.IndexOf x)
-                               |> fun x -> if x < 0
-                                           then str2Mut <- str2Mut
-                                           else str2Mut <- str2Mut.Remove(x,1)
-                     )
+        |> Array.map (fun x ->
+            str2Mut.IndexOf x
+            |> fun x ->
+                if x < 0
+                then str2Mut <- str2Mut
+                else str2Mut <- str2Mut.Remove(x,1)
+        )
     let numberOfCommonSpecies2 =
         charSeq2
-        |> Array.map (fun x -> (str1Mut.IndexOf x)
-                               |> fun x -> if x < 0
-                                           then str1Mut <- str1Mut
-                                           else str1Mut <- str1Mut.Remove(x,1)
-                     )
+        |> Array.map (fun x ->
+            str1Mut.IndexOf x
+            |> fun x ->
+                if x < 0
+                then str1Mut <- str1Mut
+                else str1Mut <- str1Mut.Remove(x,1)
+        )
     let numberOfSpeciesCommon =
         (startLength2 - str2Mut.Length,startLength1 - str1Mut.Length)
         |> fun (x,y) -> if x <> y then failwith "unknown case"

@@ -43,9 +43,9 @@ and Model = {
     MainReactElement : MainReactElement
     ShowMenuBool : bool
     AdminUserList : User []
-    AdminUserListRoleFilter : ActiveUserRoles
+    AdminUserListRoleFilter : Roles option
     AdminViewUser : User option
-    AdminAssignRole : ActiveUserRoles
+    AdminAssignRole : Roles option
     }
 
 // The Msg type defines what events/actions can occur while the application is running
@@ -56,9 +56,9 @@ and Msg =
     | ToggleMenu
     | ChangeMainReactElement of MainReactElement
     | SortAllUserList of string
-    | FilterAllUserList of ActiveUserRoles
+    | FilterAllUserList of Roles option
     | AdminSelectUser of User
-    | AdminSelectAssignRole of ActiveUserRoles
+    | AdminSelectAssignRole of Roles option
     | Increment
     | Decrement
     | UpdateInputString of string
@@ -87,7 +87,7 @@ and Msg =
     | AddUsernameToExtLoginResponse of Result<DotnetChangeParameterResults,exn>
     | AdminGetAllUsersRequest
     | AdminGetAllUsersResponse of Result<User [],exn>
-    | AdminRegisterUserRequest of RegisterModel * ActiveUserRoles
+    | AdminRegisterUserRequest of RegisterModel * Roles
     | AdminRegisterUserResponse of Result<DotnetRegisterResults,exn>
     | AdminChangeUserParamsRequest of LoginModel * User * UserParameters * string
     | AdminChangeUserParamsResponse of Result<DotnetChangeParameterResults,exn>
