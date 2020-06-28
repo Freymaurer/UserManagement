@@ -44,8 +44,9 @@ In addition this repo can give an idea on how to use Fable.Remoting in combinati
 
 ### Use Asp.Net Identity with an Sql Database
 
-The EFIdentityDummyProject is used to create the databases used by the Identity framework. To accomplish this, open the solution in Visual Studio -> Tools -> Nuget Package Manager -> Package Manager Console und navigate to the EFIdentityDummyProject - folder (use `dir` to check current location and `cd ThisCouldBeYourPath\EFIdentityDummyProject` to navigate to the folder containing the Startup.cs file) then type `Update-Database -Project EFIdentityDummyProject -StartupProject EFIdentityDummyProject` and the necessary databases will be build. 
-([source](https://docs.microsoft.com/de-de/ef/core/miscellaneous/cli/powershell))
+you can create an c# mvc project to create the identy database necessary for the ASP.NET core identity model. To do this add a new 'ASP.NET Core Web Application' to this solution with the template web application (mvc-controlled). Remember to change authentification to 'Individual user accounts'.
+This dummy project is used to create the databases used by the Identity framework. To accomplish this, open the solution in Visual Studio -> Tools -> Nuget Package Manager -> Package Manager Console und navigate to the EFIdentityDummyProject - folder (use `dir` to check current location and `cd ThisCouldBeYourPath\EFIdentityDummyProject` to navigate to the folder containing the Startup.cs file) then type `Update-Database -Project EFIdentityDummyProject -StartupProject EFIdentityDummyProject` and the necessary databases will be build. 
+([source](https://docs.microsoft.com/de-de/ef/core/miscellaneous/cli/powershell)). If you want to create an IdentityDB on an external SQL-Server you need to change the connectionstring 'DefaultConnection' at '\DummyProject\appsettings.json' to the connectionstring of your SQL-server and then update the database as described earlier.
 
 ## SAFE Stack Documentation
 

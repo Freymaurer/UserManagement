@@ -107,18 +107,19 @@ let webApp =
             (setStatusCode 401 >=> text "Access Denied, not an admin.")
 
     router {
-        /// urls for challenge against oauth login
+        // urls for challenge against oauth login
         forward OAuthSigninPaths.googleOAuth OAuth.googleAuth
         forward OAuthSigninPaths.githubOAuth OAuth.gitHubAuth
         forward OAuthSigninPaths.orcidOAuth OAuth.orcidAuth
-        /// oauth callback: creates useraccount and external user login for oauth user
+        // oauth callback: creates useraccount and external user login for oauth user
         forward "/api/externalLoginCallback" (OAuth.externalLoginCallback >=> redirectTo false ("http://localhost:8080/"))
-        /// extra log out url; not necessary
+        // extra log out url; not necessary
         forward "/api/Account/Logout" (signOut "Cookies")
-        /// fable remoting apis
+        // fable remoting apis, give each api a defined and necessary authorization level
         forward "/api/IUserApi" userApi
         forward "/api/IDotnetSecureApi" (mustBeLoggedIn >=> dotnetSecureApi)
         forward "/api/IAdminSecureApi" (mustBeLoggedIn >=> mustBeAdmin >=> adminSecureApi)
+        // 
         forward "" (setStatusCode 404 >=> text "Not Found")
     }
 
@@ -146,6 +147,7 @@ let configureServices (services : IServiceCollection) =
     services.AddDbContext<IdentityDbContext>(
         fun options ->
             options.UseSqlServer(
+                // this db context can either be a connection string to a local db, as in this case (see readme on how to create this) or a connection string to an external sql server.
                 @"Data Source=(localdb)\MSSQLLocalDB;Initial Catalog=aspnet-EFIdentityDummyProject-B99201D9-CFB8-46BD-97A6-12887D2F02AA;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False"
             ) |> ignore
         ) |> ignore
