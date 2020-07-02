@@ -29,7 +29,7 @@ dotnet fake build -t run
 ### Authentication and Authorization
 
 This example app for fsharp UserManagement in a [SAFE](https://safe-stack.github.io/docs/intro/) stack environmant is originally based on [ASP.NET Core](https://docs.microsoft.com/de-de/aspnet/core/security/?view=aspnetcore-3.1), This is
-wrapped in a functional first approach by the F# web framework [Giraffe](https://github.com/giraffe-fsharp/Giraffe/blob/master/DOCUMENTATION.md#authentication-and-authorization). Ob top of both is the [Saturn](https://saturnframework.org/explanations/pipeline.html)
+wrapped in a functional first approach by the F# web framework [Giraffe](https://github.com/giraffe-fsharp/Giraffe/blob/master/DOCUMENTATION.md#authentication-and-authorization). On top of both is the [Saturn](https://saturnframework.org/explanations/pipeline.html)
 library built. This provides an additonal set of optional abstractions which make configuring web applications and constructing complex routes easy to achieve.
 
 So what is nshow in this example is how to use/access cookie-based ASP.NET Authentication and Authorization functions from Giraffe and Saturn. The basic functions necessary to manage user logins and more are included in 'AspNetCoreIdentity.fs' These feature for example:
