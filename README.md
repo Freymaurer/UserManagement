@@ -6,56 +6,48 @@ This template can be used to generate a full-stack web application using the [SA
 
 You'll need to install the following pre-requisites in order to build SAFE applications
 
-* The [.NET Core SDK](https://www.microsoft.com/net/download)
-* The [Yarn](https://yarnpkg.com/lang/en/docs/install/) package manager (you can also use `npm` but the usage of `yarn` is encouraged).
-* [Node LTS](https://nodejs.org/en/download/) installed for the front end components.
-* If you're running on OSX or Linux, you'll also need to install [Mono](https://www.mono-project.com/docs/getting-started/install/).
+* [.NET Core SDK](https://www.microsoft.com/net/download) 5.0 or higher
+* [Node LTS](https://nodejs.org/en/download/)
 
-## Work with the application
+## Starting the application
 
-Before you run the project **for the first time only** you should install its local tools with this command:
+Before you run the project **for the first time only** you must install dotnet "local tools" with this command:
 
 ```bash
 dotnet tool restore
 ```
 
-
 To concurrently run the server and the client components in watch mode use the following command:
 
 ```bash
-dotnet fake build -t run
+dotnet run
 ```
 
-### Authentication and Authorization
+Then open `http://localhost:8080` in your browser.
 
-This example app for fsharp UserManagement in a [SAFE](https://safe-stack.github.io/docs/intro/) stack environmant is originally based on [ASP.NET Core](https://docs.microsoft.com/de-de/aspnet/core/security/?view=aspnetcore-3.1), This is
-wrapped in a functional first approach by the F# web framework [Giraffe](https://github.com/giraffe-fsharp/Giraffe/blob/master/DOCUMENTATION.md#authentication-and-authorization). On top of both is the [Saturn](https://saturnframework.org/explanations/pipeline.html)
-library built. This provides an additonal set of optional abstractions which make configuring web applications and constructing complex routes easy to achieve.
+The build project in root directory contains a couple of different build targets. You can specify them after `--` (target name is case-insensitive).
 
-So what is nshow in this example is how to use/access cookie-based ASP.NET Authentication and Authorization functions from Giraffe and Saturn. The basic functions necessary to manage user logins and more are included in 'AspNetCoreIdentity.fs' These feature for example:
+To run concurrently server and client tests in watch mode (you can run this command in parallel to the previous one in new terminal):
 
-- Creating and deleting accounts
-- Changing Account information
-- Admin based change of account information
-- OAuth for Google, GitHub and Orcid
+```bash
+dotnet run -- RunTests
+```
 
-In addition this repo can give an idea on how to use Fable.Remoting in combination with Authentication and Authorization.
+Client tests are available under `http://localhost:8081` in your browser and server tests are running in watch mode in console.
 
+Finally, there are `Bundle` and `Azure` targets that you can use to package your app and deploy to Azure, respectively:
 
-### Use Asp.Net Identity with an Sql Database
-
-you can create an c# mvc project to create the identy database necessary for the ASP.NET core identity model. To do this add a new 'ASP.NET Core Web Application' to this solution with the template web application (mvc-controlled). Remember to change authentification to 'Individual user accounts'.
-This dummy project is used to create the databases used by the Identity framework. To accomplish this, open the solution in Visual Studio -> Tools -> Nuget Package Manager -> Package Manager Console und navigate to the EFIdentityDummyProject - folder (use `dir` to check current location and `cd ThisCouldBeYourPath\EFIdentityDummyProject` to navigate to the folder containing the Startup.cs file) then type `Update-Database -Project EFIdentityDummyProject -StartupProject EFIdentityDummyProject` and the necessary databases will be build. 
-([source](https://docs.microsoft.com/de-de/ef/core/miscellaneous/cli/powershell)). If you want to create an IdentityDB on an external SQL-Server you need to change the connectionstring 'DefaultConnection' at '\DummyProject\appsettings.json' to the connectionstring of your SQL-server and then update the database as described earlier.
+```bash
+dotnet run -- Bundle
+dotnet run -- Azure
+```
 
 ## SAFE Stack Documentation
 
+If you want to know more about the full Azure Stack and all of it's components (including Azure) visit the official [SAFE documentation](https://safe-stack.github.io/docs/).
+
 You will find more documentation about the used F# components at the following places:
 
-* [Saturn](https://saturnframework.org/docs/)
+* [Saturn](https://saturnframework.org/)
 * [Fable](https://fable.io/docs/)
 * [Elmish](https://elmish.github.io/elmish/)
-* [Fable.Remoting](https://zaid-ajaj.github.io/Fable.Remoting/)
-* [Fulma](https://fulma.github.io/Fulma/)
-
-If you want to know more about the full Azure Stack and all of it's components (including Azure) visit the official [SAFE documentation](https://safe-stack.github.io/docs/).

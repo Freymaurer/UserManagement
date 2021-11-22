@@ -1,28 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFramework>net5.0</TargetFramework>
         <DefineConstants>FABLE_COMPILER</DefineConstants>
     </PropertyGroup>
     <ItemGroup>
         <None Include="index.html" />
         <None Include="paket.references" />
-        <None Include="style.scss" />
-        <Compile Include="..\Shared\Shared.fs" />
-        <Compile Include="Version.fs" />
-        <Compile Include="Types.fs" />
-        <Compile Include="AuxFunctions.fs" />
-        <Compile Include="State.fs" />
-        <Compile Include="View\Placeholder.fs" />
-        <Compile Include="View\Counter.fs" />
-        <Compile Include="View\Helper.fs" />
-        <Compile Include="View\Modals.fs" />
-        <Compile Include="View\NavbarLogin.fs" />
-        <Compile Include="View\SidebarMenu.fs" />
-        <Compile Include="View\UserAccount.fs" />
-        <Compile Include="View\Userlist.fs" />
-        <Compile Include="View.fs" />
-        <Compile Include="Client.fs" />
+        <Compile Include="Index.fs" />
+        <Compile Include="App.fs" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Shared\Shared.fsproj" />
     </ItemGroup>
     <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

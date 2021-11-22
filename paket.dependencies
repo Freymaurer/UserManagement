@@ -1,43 +1,32 @@
-source https://www.nuget.org/api/v2
+source https://api.nuget.org/v3/index.json
+framework: net5.0
+storage: none
 
-nuget Microsoft.AspNetCore.Authentication.Google
-nuget Microsoft.AspNetCore.Identity.EntityFrameworkCore
-nuget Microsoft.AspNetCore.Identity.UI
-nuget Microsoft.EntityFrameworkCore.SqlServer
-nuget Microsoft.EntityFrameworkCore.Tools
+nuget Fable.Remoting.Giraffe
+nuget Saturn
+nuget Expecto
+nuget Microsoft.AspNetCore.Authentication.Google 5.0.12
+nuget Microsoft.AspNetCore.Identity.EntityFrameworkCore 5.0.12
+nuget Microsoft.AspNetCore.Identity.UI 5.0.12
+nuget Microsoft.EntityFrameworkCore 5.0.12
+nuget Microsoft.EntityFrameworkCore.Abstractions 5.0.12
+nuget Microsoft.EntityFrameworkCore.Relational 5.0.12
+nuget Microsoft.EntityFrameworkCore.SqlServer 5.0.12
 
-group Server
-    source https://api.nuget.org/v3/index.json
-    framework: netcoreapp3.1
-    storage: none
 
-    nuget FSharp.Core
-    nuget Saturn
-    nuget Microsoft.AspNetCore.Authentication.JwtBearer
-    nuget Fable.Remoting.Giraffe ~> 3
+nuget Fable.Core
+nuget Fable.Elmish
+nuget Fable.Elmish.React
+nuget Fable.Elmish.Debugger
+nuget Fable.Elmish.HMR
+nuget Fable.Mocha
+nuget Fable.React
+nuget Fable.Remoting.Client
+nuget Feliz
+nuget Feliz.Bulma
+nuget Fable.FontAwesome.Free 2.1.0
+nuget Fulma
 
-group Client
-    source https://api.nuget.org/v3/index.json
-    framework: netstandard2.0
-    storage: none
-
-    nuget Fable.Core ~> 3
-    nuget Fable.Elmish ~> 3
-    nuget Fable.Elmish.Debugger ~> 3
-    nuget Fable.Elmish.HMR ~> 4
-    nuget Fable.Elmish.React ~> 3
-    nuget Fable.React ~> 5
-    nuget Fable.Remoting.Client ~> 5
-    nuget Fulma ~> 2
-    nuget Fable.FontAwesome.Free ~> 2
-
-group Build
-    source https://api.nuget.org/v3/index.json
-    framework: netstandard2.0
-    storage: none
-
-    nuget FSharp.Core
-    nuget Fake.Core.ReleaseNotes
-    nuget Fake.Core.Target
-    nuget Fake.DotNet.Cli
-    nuget Fake.IO.FileSystem
+nuget Fake.Core.Target
+nuget Fake.IO.FileSystem
+nuget Farmer

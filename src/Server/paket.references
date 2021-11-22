@@ -1,9 +1,9 @@
+Saturn
+Fable.Remoting.Giraffe
+Microsoft.EntityFrameworkCore
 Microsoft.AspNetCore.Authentication.Google
-Microsoft.AspNetCore.Identity.EntityFrameworkCore
 Microsoft.AspNetCore.Identity.UI
+Microsoft.AspNetCore.Identity.EntityFrameworkCore
 Microsoft.EntityFrameworkCore.SqlServer
-Microsoft.EntityFrameworkCore.Tools
-group Server
-    FSharp.Core
-    Saturn
-    Fable.Remoting.Giraffe
+Microsoft.EntityFrameworkCore.Abstractions
+Microsoft.EntityFrameworkCore.Relational
