@@ -20,10 +20,16 @@ let private navigationElements dispatch =
         ]
     ]
 
-let private loginButton (model:Model) dispatch =
+let private loginButton dispatch =
     Bulma.button.a [
         prop.text "Log In"
         prop.onClick (fun _ -> UpdatePageModel (PageModel.Login Login.Model.init) |> dispatch )
+    ]
+
+let private signupButton dispatch =
+    Bulma.button.a [
+        prop.text "Sign Up"
+        prop.onClick (fun _ -> UpdatePageModel (PageModel.Signup Signup.Model.init) |> dispatch )
     ]
 
 let private profileItem dispatch =
@@ -48,8 +54,8 @@ let private loginElements (model:Model) dispatch =
             Bulma.buttons [
                 Bulma.buttons.areSmall
                 prop.children [
-                    loginButton model dispatch
-                    Bulma.button.a [ prop.text "Sign up" ]
+                    loginButton dispatch
+                    signupButton dispatch
                 ]
             ]
         ]

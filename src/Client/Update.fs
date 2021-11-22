@@ -16,14 +16,27 @@ module Identity =
 
     let update (identityMsg:Identity.Msg) (model: Model) : Model * Cmd<Msg> =
         match identityMsg with
-        | LoginRequest loginModel ->
+        | LoginRequest loginInfo ->
             let cmd =
                 Cmd.OfAsync.either
-                    Api.identityApi.login loginModel
+                    Api.identityApi.login loginInfo
                     (LoginResponse >> IdentityMsg)
-                    (curry GenericError Cmd.none )
+                    (curry GenericError Cmd.none)
             model, cmd
         | LoginResponse res ->
+            let nextModel = 
+                match res with
+                | Error e   -> Browser.Dom.window.alert(e); model
+                | Ok ()     -> {model with PageModel = PageModel.Home Todo.Model.init}
+            nextModel, IdentityMsg GetActiveUserRequest |> Cmd.ofMsg
+        | SignupRequest signupInfo ->
+            let cmd =
+                Cmd.OfAsync.either
+                    Api.identityApi.register signupInfo
+                    (SignupResponse >> IdentityMsg)
+                    (curry GenericError Cmd.none)
+            model, cmd
+        | SignupResponse res ->
             let nextModel = 
                 match res with
                 | Error e   -> Browser.Dom.window.alert(e); model
@@ -67,11 +80,13 @@ module Identity =
 let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
     match model.PageModel, msg with
     | _, UpdatePageModel pm ->
-        let nextModel = {
-            model with
-                PageModel = pm
-        }
-        nextModel, Cmd.none
+        let nextModel = { model with PageModel = pm }
+        // This feels a bit hacky. Mostly because i tried to do replicate a pseudo multi page concept.
+        let cmd =
+            match pm with
+            | PageModel.Home _ -> Cmd.OfAsync.perform Api.todosApi.getTodos () (Messages.Todo.GotTodos >> TodoMsg)
+            | _ -> Cmd.none
+        nextModel, cmd
     | _, UpdateNavbarMenuState b ->
         let nextModel = {model with NavbarMenuState = b}
         nextModel, Cmd.none
@@ -90,6 +105,9 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
         nextModel, cmd
     | PageModel.Login loginModel, LoginMsg msg ->
         let nextModel, cmd = Login.update msg model loginModel
+        nextModel, cmd
+    | PageModel.Signup signupModel, SignupMsg msg ->
+        let nextModel, cmd = Signup.update msg model signupModel
         nextModel, cmd
         
         

@@ -23,8 +23,9 @@ type ITodosApi =
 open IdentityTypes
 
 type IIdentityApi = {
-    login       : LoginInfo -> Async<Result<unit,string>>
-    getNumTest  : unit      -> Async<int>
+    login       : LoginInfo     -> Async<Result<unit,string>>
+    register    : SignupInfo    -> Async<Result<unit,string>>
+    getNumTest  : unit          -> Async<int>
 }
 
 type IUserApi = {

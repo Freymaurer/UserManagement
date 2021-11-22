@@ -13,6 +13,7 @@
         <Compile Include="Messages.fs" />
         <Compile Include="View\Navbar.fs" />
         <Compile Include="Pages\Todo.fs" />
+        <Compile Include="Pages\Signup.fs" />
         <Compile Include="Pages\Login.fs" />
         <Compile Include="Index.fs" />
         <Compile Include="Init.fs" />

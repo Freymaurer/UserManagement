@@ -14,6 +14,8 @@ let mainElement (model:Model) dispatch =
         Todo.mainElement model todoModel dispatch
     | PageModel.Login loginModel ->
         Login.mainElement model loginModel dispatch
+    | PageModel.Signup signupModel ->
+        Signup.mainElement model signupModel dispatch
 
 let view (model: Model) (dispatch: Msg -> unit) =
     Bulma.hero [

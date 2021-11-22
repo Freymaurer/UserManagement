@@ -47,19 +47,18 @@ storage.AddTodo(Todo.create "Write your app")
 storage.AddTodo(Todo.create "Ship it !!!")
 |> ignore
 
-let todosApi =
-    { getTodos = fun () -> async { return storage.GetTodos() }
-      addTodo =
-          fun todo ->
-              async {
-                    printfn "add todo"
-                    match storage.AddTodo todo with
-                    | Ok () -> return todo
-                    | Error e -> return failwith e
-              } }
+let todosApi = {
+    getTodos = fun () -> async { return storage.GetTodos() }
+    addTodo = fun todo -> async {
+        match storage.AddTodo todo with
+        | Ok () -> return todo
+        | Error e -> return failwith e
+    }
+}
 
 let identityApi (ctx: HttpContext) : IIdentityApi = {
-    login = fun loginModel -> async {return UserIdentity.login loginModel ctx}
+    login = fun loginInfo -> async {return UserIdentity.login loginInfo ctx}
+    register = fun signupInfo -> async { return UserIdentity.signup signupInfo ctx }
     getNumTest = fun () -> async { return 42 }
 }
 

@@ -14,6 +14,17 @@ type LoginInfo = {
         Password = ""
     }
 
+type SignupInfo = {
+    Username : string
+    Password : string
+    Email : string
+} with
+    static member empty = {
+        Username = "" 
+        Password = ""
+        Email = ""
+    }
+
 type ExternalLogin = {
     IsTrue : bool
     IsUsernameSet : bool

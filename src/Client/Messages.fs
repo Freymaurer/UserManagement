@@ -22,11 +22,14 @@ module Identity =
     type Msg =
     | LoginRequest of LoginInfo
     | LoginResponse of Result<unit,string>
-    | GetActiveUserRequest
-    | GetActiveUserResponse of User
-    | GetNumRequest
+    | SignupRequest of SignupInfo
+    | SignupResponse of Result<unit,string>
     | LogoutRequest
     | LogoutResponse of unit
+    | GetActiveUserRequest
+    | GetActiveUserResponse of User
+    // this is only for testing during dev.
+    | GetNumRequest
 
 module Todo =
     type Msg =
@@ -39,6 +42,11 @@ module Login =
     type Msg =
     | UpdateLoginInfo of IdentityTypes.LoginInfo
 
+module Signup =
+    type Msg =
+    | UpdateSignupInfo          of IdentityTypes.SignupInfo
+    | UpdatePasswordDuplicate   of string
+
 type Msg =
     | UpdateNavbarMenuState of bool
     | UpdatePageModel of PageModel
@@ -47,3 +55,4 @@ type Msg =
     | IdentityMsg of Identity.Msg
     | TodoMsg of Todo.Msg
     | LoginMsg of Login.Msg
+    | SignupMsg of Signup.Msg

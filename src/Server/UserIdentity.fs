@@ -21,8 +21,42 @@ module LoginMethods =
     let Github = "GitHub"
     let Google = "Google"
 
+let showErrors (errors : IdentityError seq) =
+    errors
+    |> Seq.fold (fun acc err ->
+        sprintf "Code: %s, Description: %s" err.Code err.Description
+        |> acc.AppendLine : StringBuilder) (StringBuilder(""))
+    |> (fun x -> x.ToString())
+
+let signup (registerModel:SignupInfo) (context: HttpContext) =
+    task {
+        let user = IdentityUser(UserName = registerModel.Username, Email = registerModel.Email)
+        let userManager = context.GetService<UserManager<IdentityUser>>()
+        let! result = userManager.CreateAsync(user, registerModel.Password)
+        match result.Succeeded with
+        | false -> return Error (showErrors result.Errors)
+        | true  ->
+            //let! emailConfirmToken =
+            //    userManager.GenerateEmailConfirmationTokenAsync(user)
+            //let encodedEmailConfirmtoken =
+            //    WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(emailConfirmToken))
+            /// check if already users exist. If not create admin. If there is only 1 user, then it is the one just created 4 lines above
+            let userCount = userManager.Users |> Array.ofSeq |> Array.length // Possible error
+            let role = if userCount = 1 then Roles.Admin else Roles.User
+            let! addingClaims = userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, (string role)))
+            ///
+            let! addingClaims2 =
+                userManager.AddClaimAsync(user, new Claim(CustomClaims.LoginMethod, LoginMethods.LocalAuthority))
+            match addingClaims.Succeeded,addingClaims2.Succeeded with
+            | false,false -> return Error (showErrors result.Errors)
+            | true,true  ->
+                let signInManager = context.GetService<SignInManager<IdentityUser>>()
+                do! signInManager.SignInAsync(user, true)
+                return Ok()
+            | _,_ -> return Error (showErrors result.Errors)
+    } |> fun x -> x.Result
+
 let login (user:LoginInfo) (contextPre: HttpContext) =
-    printfn "hit"
     let signOutPrevious (ctx: HttpContext) =
         task {
             do! ctx.SignOutAsync("Cookies")

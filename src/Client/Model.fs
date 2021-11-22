@@ -2,6 +2,7 @@ module rec Model
 
 open Shared
 open IdentityTypes
+open Elmish
 
 module Login =
 
@@ -10,6 +11,17 @@ module Login =
     } with
         static member init = {
             LoginInfo = LoginInfo.empty
+        }
+
+module Signup =
+
+    type Model = {
+        SignupInfo          : SignupInfo
+        PasswordDuplicate   : string
+    } with
+        static member init = {
+            SignupInfo          = SignupInfo.empty
+            PasswordDuplicate   = ""
         }
 
 module Todo =
@@ -26,6 +38,7 @@ module Todo =
 type PageModel =
 | Home of Todo.Model
 | Login of Login.Model
+| Signup of Signup.Model
 
 type UserState = {
     LoggedIn    : bool
