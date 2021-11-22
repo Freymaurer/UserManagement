@@ -10,12 +10,12 @@ open Feliz.Bulma
 
 let mainElement (model:Model) dispatch =
     match model.PageModel with
-    | PageModel.Home todoModel ->
-        Todo.mainElement model todoModel dispatch
-    | PageModel.Login loginModel ->
-        Login.mainElement model loginModel dispatch
-    | PageModel.Signup signupModel ->
-        Signup.mainElement model signupModel dispatch
+    | PageModel.Todo state ->
+        Todo.mainElement model state dispatch
+    | PageModel.Login state ->
+        Login.mainElement model state dispatch
+    | PageModel.Signup state ->
+        Signup.mainElement model state dispatch
 
 let view (model: Model) (dispatch: Msg -> unit) =
     Bulma.hero [

@@ -9,6 +9,10 @@ open Feliz
 open Feliz.Bulma
 open Fable.React
 
+let init() : Signup.Model * Cmd<Msg> =
+    let m = Signup.Model.init
+    m, Cmd.none
+
 let update (msg: Signup.Msg) (model:Model) (state: Signup.Model) : Model * Cmd<Msg> =
     match msg with
     | UpdateSignupInfo register ->

@@ -30,13 +30,13 @@ module Todo =
         Input: string
     } with
         static member init = {
-            Todos = [];
+            Todos = []
             Input = ""
         }
 
 [<RequireQualifiedAccess>]
 type PageModel =
-| Home of Todo.Model
+| Todo of Todo.Model 
 | Login of Login.Model
 | Signup of Signup.Model
 

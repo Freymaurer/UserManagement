@@ -16,20 +16,22 @@ let private navigationElements dispatch =
     Bulma.navbarStart.div [
         Bulma.navbarItem.a [
             prop.text "Home"
-            prop.onClick (fun _ -> UpdatePageModel (PageModel.Home Todo.Model.init) |> dispatch)
+            prop.onClick (fun _ ->
+                UpdatePage Route.Todo |> dispatch
+            )
         ]
     ]
 
 let private loginButton dispatch =
     Bulma.button.a [
         prop.text "Log In"
-        prop.onClick (fun _ -> UpdatePageModel (PageModel.Login Login.Model.init) |> dispatch )
+        prop.onClick (fun _ -> UpdatePage Route.Login |> dispatch )
     ]
 
 let private signupButton dispatch =
     Bulma.button.a [
         prop.text "Sign Up"
-        prop.onClick (fun _ -> UpdatePageModel (PageModel.Signup Signup.Model.init) |> dispatch )
+        prop.onClick (fun _ -> UpdatePage Route.Signup |> dispatch )
     ]
 
 let private profileItem dispatch =

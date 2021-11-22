@@ -9,15 +9,24 @@ open Feliz.Bulma
 open Shared
 open Elmish
 
+let init() : Todo.Model * Cmd<Msg> =
+    let m = Todo.Model.init
+    let cmd =
+        Cmd.OfAsync.perform
+            Api.todosApi.getTodos
+            ()
+            (Messages.Todo.GotTodos >> TodoMsg)
+    m, cmd
+
 let update (msg: Todo.Msg) (model:Model) (todomodel: Todo.Model) : Model * Cmd<Msg> =
     match msg with
     | GotTodos todos ->
         let todoModel = { todomodel with Todos = todos }
-        let nextModel = { model with PageModel = PageModel.Home todoModel}
+        let nextModel = { model with PageModel = PageModel.Todo todoModel}
         nextModel, Cmd.none
     | SetInput value ->
         let todoModel = { todomodel with Input = value }
-        let nextModel = { model with PageModel = PageModel.Home todoModel}
+        let nextModel = { model with PageModel = PageModel.Todo todoModel}
         nextModel, Cmd.none
     | AddTodo ->
         let todo = Todo.create todomodel.Input
@@ -27,11 +36,11 @@ let update (msg: Todo.Msg) (model:Model) (todomodel: Todo.Model) : Model * Cmd<M
             |> Cmd.map TodoMsg
 
         let todoModel = { todomodel with Input = "" }
-        let nextModel = { model with PageModel = PageModel.Home todoModel}
+        let nextModel = { model with PageModel = PageModel.Todo todoModel}
         nextModel, cmd
     | AddedTodo todo ->
         let todoModel = { todomodel with Todos = todomodel.Todos @ [ todo ] }
-        let nextModel = { model with PageModel = PageModel.Home todoModel}
+        let nextModel = { model with PageModel = PageModel.Todo todoModel}
         nextModel, Cmd.none
 
 let mainElement (model: Model) (todoModel:Todo.Model) (dispatch: Msg -> unit) =

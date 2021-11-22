@@ -24,11 +24,14 @@ module Identity =
                     (curry GenericError Cmd.none)
             model, cmd
         | LoginResponse res ->
-            let nextModel = 
+            let cmd =
                 match res with
-                | Error e   -> Browser.Dom.window.alert(e); model
-                | Ok ()     -> {model with PageModel = PageModel.Home Todo.Model.init}
-            nextModel, IdentityMsg GetActiveUserRequest |> Cmd.ofMsg
+                | Error e   -> Browser.Dom.window.alert(e); Cmd.none
+                | Ok ()     ->
+                    let msg = IdentityMsg GetActiveUserRequest |> Cmd.ofMsg
+                    let goToTodoPage = UpdatePage Route.Todo |> Cmd.ofMsg
+                    Cmd.batch [msg; goToTodoPage]
+            model, cmd
         | SignupRequest signupInfo ->
             let cmd =
                 Cmd.OfAsync.either
@@ -37,11 +40,14 @@ module Identity =
                     (curry GenericError Cmd.none)
             model, cmd
         | SignupResponse res ->
-            let nextModel = 
+            let cmd =
                 match res with
-                | Error e   -> Browser.Dom.window.alert(e); model
-                | Ok ()     -> {model with PageModel = PageModel.Home Todo.Model.init}
-            nextModel, IdentityMsg GetActiveUserRequest |> Cmd.ofMsg
+                | Error e   -> Browser.Dom.window.alert(e); Cmd.none
+                | Ok ()     ->
+                    let msg = IdentityMsg GetActiveUserRequest |> Cmd.ofMsg
+                    let goToTodoPage = UpdatePage Route.Todo |> Cmd.ofMsg
+                    Cmd.batch [msg; goToTodoPage]
+            model, cmd
         | LogoutRequest ->
             let cmd =
                 Cmd.OfAsync.either
@@ -54,9 +60,9 @@ module Identity =
             let nextModel = {
                 model with
                     UserState = UserState.init;
-                    PageModel = PageModel.Home Todo.Model.init
             }
-            nextModel, Cmd.none
+            let cmd = UpdatePage Route.Todo |> Cmd.ofMsg
+            nextModel, cmd
         | GetActiveUserRequest ->
             let cmd =
                 Cmd.OfAsync.either
@@ -77,15 +83,25 @@ module Identity =
                     (fun x -> GenericLog $"{x}")
             model, cmd
 
+let updatePageHandler (model:Model) (page:Route) : Model * Cmd<Msg> =
+    match page with
+    | Route.Todo ->
+        let s, cmd = Todo.init()
+        let nextModel = {model with PageModel = PageModel.Todo s}
+        nextModel, cmd
+    | Route.Signup ->
+        let s, cmd = Signup.init()
+        let nextModel = {model with PageModel = PageModel.Signup s}
+        nextModel, cmd
+    | Route.Login ->
+        let s, cmd = Login.init()
+        let nextModel = {model with PageModel = PageModel.Login s}
+        nextModel, cmd
+
 let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
     match model.PageModel, msg with
-    | _, UpdatePageModel pm ->
-        let nextModel = { model with PageModel = pm }
-        // This feels a bit hacky. Mostly because i tried to do replicate a pseudo multi page concept.
-        let cmd =
-            match pm with
-            | PageModel.Home _ -> Cmd.OfAsync.perform Api.todosApi.getTodos () (Messages.Todo.GotTodos >> TodoMsg)
-            | _ -> Cmd.none
+    | _, UpdatePage pm ->
+        let nextModel, cmd = updatePageHandler model pm
         nextModel, cmd
     | _, UpdateNavbarMenuState b ->
         let nextModel = {model with NavbarMenuState = b}
@@ -100,14 +116,14 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
     | _, IdentityMsg msg ->
         let nextModel, cmd = Identity.update msg model
         nextModel, cmd
-    | PageModel.Home todoModel, TodoMsg msg ->
-        let nextModel, cmd = Todo.update msg model todoModel
+    | PageModel.Todo state, TodoMsg msg ->
+        let nextModel, cmd = Todo.update msg model state
         nextModel, cmd
-    | PageModel.Login loginModel, LoginMsg msg ->
-        let nextModel, cmd = Login.update msg model loginModel
+    | PageModel.Login state, LoginMsg msg ->
+        let nextModel, cmd = Login.update msg model state
         nextModel, cmd
-    | PageModel.Signup signupModel, SignupMsg msg ->
-        let nextModel, cmd = Signup.update msg model signupModel
+    | PageModel.Signup state, SignupMsg msg ->
+        let nextModel, cmd = Signup.update msg model state
         nextModel, cmd
         
         

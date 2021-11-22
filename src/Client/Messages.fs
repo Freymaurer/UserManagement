@@ -49,7 +49,7 @@ module Signup =
 
 type Msg =
     | UpdateNavbarMenuState of bool
-    | UpdatePageModel of PageModel
+    | UpdatePage of Routing.Route
     | GenericError of Cmd<Msg> * exn
     | GenericLog of string
     | IdentityMsg of Identity.Msg

@@ -9,11 +9,15 @@ open Feliz
 open Feliz.Bulma
 open Fable.React
 
-let update (msg: Login.Msg) (model:Model) (loginmodel: Login.Model) : Model * Cmd<Msg> =
+let init() : Login.Model * Cmd<Msg> =
+    let m = Login.Model.init
+    m, Cmd.none
+
+let update (msg: Login.Msg) (model:Model) (state: Login.Model) : Model * Cmd<Msg> =
     match msg with
     | UpdateLoginInfo login ->
-        let nextLoginModel = {loginmodel with LoginInfo = login}
-        let nextModel = { model with PageModel = PageModel.Login nextLoginModel}
+        let nextState = {state with LoginInfo = login}
+        let nextModel = { model with PageModel = PageModel.Login nextState}
         nextModel, Cmd.none
 
 let mainElement (model:Model) (loginModel:Login.Model) dispatch =
