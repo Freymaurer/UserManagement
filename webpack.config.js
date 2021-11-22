@@ -17,6 +17,7 @@ var CONFIG = {
     fsharpEntry: './src/Client/output/App.js',
     outputDir: './deploy/public',
     assetsDir: './src/Client/public',
+    cssEntry: './src/Client/style.scss',
     devServerPort: 8080,
     // When using webpack-dev-server, you may need to redirect some calls
     // to a external API server. See https://webpack.js.org/configuration/dev-server/#devserver-proxy
@@ -25,12 +26,18 @@ var CONFIG = {
         '/api/**': {
             target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
                changeOrigin: true
-           },
+        },
         // redirect websocket requests that start with /socket/ to the server on the port 8085
         '/socket/**': {
             target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
             ws: true
-           }
+        },
+        '/test': {
+            target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
+            secure: false,
+            changeOrigin: true,
+            ignorePath: false
+        },
        }
 }
 
@@ -54,8 +61,11 @@ module.exports = {
     // have a faster HMR support. In production bundle styles together
     // with the code because the MiniCssExtractPlugin will extract the
     // CSS in a separate files.
-    entry: {
-        app: resolve(CONFIG.fsharpEntry)
+    entry: isProduction ? {
+        app: [resolve(CONFIG.fsharpEntry), resolve(CONFIG.cssEntry)]
+    } : {
+        app: resolve(CONFIG.fsharpEntry),
+        style: resolve(CONFIG.cssEntry)
     },
     // Add a hash to the output file name in production
     // to prevent browser caching if code changes
