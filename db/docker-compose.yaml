@@ -1,0 +1,18 @@
+version: '3.9'
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    ports:
+      - 1433:1433
+    volumes:
+      - ~/apps/mssql/data:/var/lib/mssqlql/data
+    environment:
+      # Need "complex" pw (min 8 letters, upper-lower case, number ...) otherwise db will not build
+      SA_PASSWORD: Testing#11
+      ACCEPT_EULA: Y
+
+  adminer-user:
+    image: adminer
+    ports:
+        - 8081:8080

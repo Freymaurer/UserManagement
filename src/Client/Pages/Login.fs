@@ -26,6 +26,7 @@ let mainElement (model:Model) (loginModel:Login.Model) dispatch =
             Bulma.label "Username"
             Bulma.control.div [
                 Bulma.input.text [
+                    prop.id "login_username"
                     prop.placeholder "username"
                     prop.onKeyDown(fun e ->
                         match e.key with
@@ -46,6 +47,7 @@ let mainElement (model:Model) (loginModel:Login.Model) dispatch =
             Bulma.label "Password"
             Bulma.control.div [
                 Bulma.input.password [
+                    prop.id "login_password"
                     prop.placeholder "*****"
                     prop.onKeyDown(fun e ->
                         match e.key with

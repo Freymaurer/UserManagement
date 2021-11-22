@@ -30,6 +30,7 @@ let mainElement (model:Model) (state:Signup.Model) dispatch =
             Bulma.label "Email"
             Bulma.control.div [
                 Bulma.input.email [
+                    prop.id "signup_email"
                     prop.placeholder "email@provider.de"
                     prop.onKeyDown(fun e ->
                         match e.key with
@@ -50,6 +51,7 @@ let mainElement (model:Model) (state:Signup.Model) dispatch =
             Bulma.label "Username"
             Bulma.control.div [
                 Bulma.input.text [
+                    prop.id "signup_username"
                     prop.placeholder "username"
                     prop.onKeyDown(fun e ->
                         match e.key with
@@ -70,6 +72,7 @@ let mainElement (model:Model) (state:Signup.Model) dispatch =
             Bulma.label "Password"
             Bulma.control.div [
                 Bulma.input.password [
+                    prop.id "signup_password"
                     prop.placeholder "*****"
                     prop.onKeyDown(fun e ->
                         match e.key with
@@ -90,6 +93,7 @@ let mainElement (model:Model) (state:Signup.Model) dispatch =
             Bulma.label "Repeat Password"
             Bulma.control.div [
                 Bulma.input.password [
+                    prop.id "signup_email_duplicate"
                     prop.placeholder "*****"
                     prop.onKeyDown(fun e ->
                         match e.key with

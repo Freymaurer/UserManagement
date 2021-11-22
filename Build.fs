@@ -50,6 +50,14 @@ Target.create "Run" (fun _ ->
     |> runParallel
 )
 
+Target.create "run-db" (fun _ ->
+    run dotnet "build" sharedPath
+    [   "server", dotnet "watch run" serverPath
+        "client", dotnet "fable watch -o output -s --run webpack-dev-server" clientPath
+        "database", dockerCompose "-f .\db\docker-compose.yaml -p safe-users up" "" ]
+    |> runParallel
+)
+
 Target.create "RunTests" (fun _ ->
     run dotnet "build" sharedTestsPath
     [ "server", dotnet "watch run" serverTestsPath
