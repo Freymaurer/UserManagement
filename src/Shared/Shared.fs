@@ -19,3 +19,15 @@ module Route =
 type ITodosApi =
     { getTodos: unit -> Async<Todo list>
       addTodo: Todo -> Async<Todo> }
+
+open IdentityTypes
+
+type IIdentityApi = {
+    login       : LoginInfo -> Async<Result<unit,string>>
+    getNumTest  : unit      -> Async<int>
+}
+
+type IUserApi = {
+    getActiveUser   : unit -> Async<User>
+    logout          : unit -> Async<unit>
+}

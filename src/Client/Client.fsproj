@@ -5,10 +5,18 @@
         <DefineConstants>FABLE_COMPILER</DefineConstants>
     </PropertyGroup>
     <ItemGroup>
+        <None Include="paket.references" />
         <None Include="style.scss" />
         <None Include="index.html" />
-        <None Include="paket.references" />
+        <Compile Include="Api.fs" />
+        <Compile Include="Model.fs" />
+        <Compile Include="Messages.fs" />
+        <Compile Include="View\Navbar.fs" />
+        <Compile Include="Pages\Todo.fs" />
+        <Compile Include="Pages\Login.fs" />
         <Compile Include="Index.fs" />
+        <Compile Include="Init.fs" />
+        <Compile Include="Update.fs" />
         <Compile Include="App.fs" />
     </ItemGroup>
     <ItemGroup>

@@ -21,8 +21,8 @@ open FSharp.Control.Tasks
 open Microsoft.AspNetCore.Identity.EntityFrameworkCore
 open Microsoft.EntityFrameworkCore
 
-
 open Shared
+open StaticStrings
 
 type Storage() =
     let todos = ResizeArray<_>()
@@ -52,16 +52,84 @@ let todosApi =
       addTodo =
           fun todo ->
               async {
-                  match storage.AddTodo todo with
-                  | Ok () -> return todo
-                  | Error e -> return failwith e
+                    printfn "add todo"
+                    match storage.AddTodo todo with
+                    | Ok () -> return todo
+                    | Error e -> return failwith e
               } }
 
+let identityApi (ctx: HttpContext) : IIdentityApi = {
+    login = fun loginModel -> async {return UserIdentity.login loginModel ctx}
+    getNumTest = fun () -> async { return 42 }
+}
+
+let userApi (ctx: HttpContext) : IUserApi = {
+    getActiveUser   = fun () -> async { return UserIdentity.getActiveUser ctx }
+    logout          = fun () -> async { return UserIdentity.logout ctx }
+}
+
+let errorHandler (ex:exn) (routeInfo:RouteInfo<HttpContext>) =
+    let msg = sprintf "[SERVER SIDE ERROR]: %A @%s." ex.Message routeInfo.path
+    Propagate msg
+
 let webApp =
-    Remoting.createApi ()
-    |> Remoting.withRouteBuilder Route.builder
-    |> Remoting.fromValue todosApi
-    |> Remoting.buildHttpHandler
+    let todoApi =
+        Remoting.createApi ()
+        |> Remoting.withRouteBuilder Route.builder
+        |> Remoting.fromValue todosApi
+        |> Remoting.withDiagnosticsLogger(printfn "%A")
+        |> Remoting.withErrorHandler errorHandler
+        |> Remoting.buildHttpHandler
+
+    let identityApi =
+        Remoting.createApi ()
+        |> Remoting.withRouteBuilder Route.builder
+        |> Remoting.fromContext identityApi
+        |> Remoting.withDiagnosticsLogger(printfn "%A")
+        |> Remoting.withErrorHandler errorHandler
+        |> Remoting.buildHttpHandler
+
+    let userApi =
+        Remoting.createApi ()
+        |> Remoting.withRouteBuilder Route.builder
+        |> Remoting.fromContext userApi
+        |> Remoting.withDiagnosticsLogger(printfn "%A")
+        |> Remoting.withErrorHandler errorHandler
+        |> Remoting.buildHttpHandler
+
+    let mustBeLoggedIn : HttpHandler =
+        requiresAuthentication (
+            setStatusCode 401 >=> text "Access Denied, not logged in."
+        )
+
+    let mustBeAdmin : HttpHandler =
+        authorizeUser
+            ( fun u ->
+                u.HasClaim (ClaimTypes.Role, "Developer")
+                || u.HasClaim (ClaimTypes.Role, "Admin")
+            )
+            (setStatusCode 401 >=> text "Access Denied, not an admin.")
+
+    // The exact order of the following routes is important to guarantee correct auth.
+    // Appearently, the "mustBeLoggedIn >=> mustBeAdmin >=>" Syntax will provoke "access denied results" even if the correct
+    // url is not hit! This is most likely due to "forward "" ", which is at the moment necessary for fable.remoting.
+    router {
+        get "/test/test1" (htmlString "<h1>Hi this is test response 1</h1>")
+        // urls for challenge against oauth login
+        //forward StaticStrings.OAuthPaths.GoogleOAuth OAuth.googleAuth
+        //forward StaticStrings.OAuthPaths.GithubOAuth OAuth.gitHubAuth
+        //forward StaticStrings.OAuthPaths.OrcidOAuth OAuth.orcidAuth
+        //// oauth callback: creates useraccount and external user login for oauth user
+        //forward OAuthPaths.ExternalLoginCallback (OAuth.externalLoginCallback >=> redirectTo false SameSiteUrls.PageUrl)
+        // extra log out url; not necessary
+        forward SameSiteUrls.logoutUrl (signOut "Cookies")
+        forward "" todoApi
+        forward "" identityApi
+        forward "" (mustBeLoggedIn >=> userApi)
+        not_found_handler (
+            setStatusCode 404 >=> text "Page not found."
+        )
+    }
 
 
 /// Client ids and Client secrets
@@ -132,7 +200,7 @@ let configureServices (services : IServiceCollection) =
         )
         .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme,
             fun options ->
-                options.LogoutPath <- PathString "/api/Account/Logout"
+                options.LogoutPath <- PathString SameSiteUrls.logoutUrl
                 //options.LoginPath <- PathString "/api/Account/Login";
                 //options.AccessDeniedPath <- PathString "/api/Account/AccessDenied";
         )
@@ -152,11 +220,10 @@ let configureServices (services : IServiceCollection) =
                 ev.OnTicketReceived <-
                     fun ctx ->
                         let tsk = task {
-                            ctx.ReturnUri <- "/api/externalLoginCallback"
+                            ctx.ReturnUri <- OAuthPaths.ExternalLoginCallback
                         }
                         Task.Factory.StartNew(fun () -> tsk.Result)
         )
-
         // source: https://github.com/SaturnFramework/Saturn/blob/master/src/Saturn.Extensions.Authorization/OAuth.fs
         // https://github.com/settings/developers
         .AddOAuth("GitHub",
@@ -178,7 +245,7 @@ let configureServices (services : IServiceCollection) =
                 ev.OnTicketReceived <-
                     fun ctx ->
                         let tsk = task {
-                            ctx.ReturnUri <- "/api/externalLoginCallback"
+                            ctx.ReturnUri <- OAuthPaths.ExternalLoginCallback
                         }
                         Task.Factory.StartNew(fun () -> tsk.Result)
                 ev.OnCreatingTicket <-
@@ -215,7 +282,7 @@ let configureServices (services : IServiceCollection) =
                 ev.OnTicketReceived <-
                     fun ctx ->
                         let tsk = task {
-                            ctx.ReturnUri <- "/api/externalLoginCallback"
+                            ctx.ReturnUri <- OAuthPaths.ExternalLoginCallback
                         }
                         Task.Factory.StartNew(fun () -> tsk.Result)
                 ev.OnCreatingTicket <-

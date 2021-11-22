@@ -103,6 +103,8 @@ module.exports = {
     devServer: {
         publicPath: '/',
         contentBase: resolve(CONFIG.assetsDir),
+        // https://youtu.be/5191ytFmG_A?list=TLPQMDkwNDIwMjCKqhGCXwxk9w&t=2305
+        historyApiFallback: true,
         host: '0.0.0.0',
         port: CONFIG.devServerPort,
         proxy: CONFIG.devServerProxy,
