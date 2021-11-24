@@ -24,16 +24,18 @@ var CONFIG = {
     devServerProxy: {
         // redirect requests that start with /api/ to the server on port 8085
         '/api/**': {
-            target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
-               changeOrigin: true
+            target: 'https://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
+            changeOrigin: true,
+            secure: false
         },
         // redirect websocket requests that start with /socket/ to the server on the port 8085
         '/socket/**': {
-            target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
-            ws: true
+            target: 'https://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
+            ws: true,
+            secure: false
         },
         '/test': {
-            target: 'http://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
+            target: 'https://localhost:' + (process.env.SERVER_PROXY_PORT || "8085"),
             secure: false,
             changeOrigin: true,
             ignorePath: false
@@ -100,6 +102,8 @@ module.exports = {
         symlinks: false
     },
     // Configuration for webpack-dev-server
+    /// https://stackoverflow.com/a/67206465/12858021
+    /// https://stackoverflow.com/questions/58789702/how-to-properly-force-https-in-safe-stack
     devServer: {
         publicPath: '/',
         contentBase: resolve(CONFIG.assetsDir),
@@ -109,7 +113,11 @@ module.exports = {
         port: CONFIG.devServerPort,
         proxy: CONFIG.devServerProxy,
         hot: true,
-        inline: true
+        inline: true,
+        https: {
+            key: "./.certs/localhost-key.pem",
+            cert: "./.certs/localhost.pem"
+        },
     },
     // - sass-loaders: transforms SASS/SCSS into JS
     // - file-loader: Moves files referenced in the code (fonts, images) into output folder

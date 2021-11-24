@@ -17,3 +17,5 @@ release.cmd
 release.sh
 *.orig
 *.DotSettings.user
+/.certs/localhost.pem
+/.certs/localhost-key.pem
