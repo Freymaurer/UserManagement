@@ -34,10 +34,13 @@ let private signupButton dispatch =
         prop.onClick (fun _ -> UpdatePage Route.Signup |> dispatch )
     ]
 
-let private profileItem dispatch =
+let private settingsItem dispatch =
     Bulma.navbarItem.a [
-        Html.i [prop.className "fas fa-id-badge fa-fw fa-pull-left"]
-        Html.span "Profile"
+        prop.onClick (fun _ -> UpdatePage Route.Settings |> dispatch)
+        prop.children [
+            Html.i [prop.className "fas fa-id-badge fa-fw fa-pull-left"]
+            Html.span "Settings"
+        ]
     ]
 
 
@@ -77,7 +80,7 @@ let private loggedInElement (model:Model) dispatch =
                 Bulma.navbarDropdown.div [
                     Bulma.navbarDropdown.isBoxed
                     prop.children [
-                        profileItem dispatch
+                        settingsItem dispatch
                         logoutItem dispatch
                     ]
                 ]

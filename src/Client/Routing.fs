@@ -6,3 +6,4 @@ type Route =
 | Todo
 | Login
 | Signup
+| Settings

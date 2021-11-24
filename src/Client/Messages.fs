@@ -47,6 +47,10 @@ module Signup =
     | UpdateSignupInfo          of IdentityTypes.SignupInfo
     | UpdatePasswordDuplicate   of string
 
+module Settings =
+    type Msg =
+    | DefaultMsg
+
 type Msg =
     | UpdateNavbarMenuState of bool
     | UpdatePage of Routing.Route
@@ -56,3 +60,4 @@ type Msg =
     | TodoMsg of Todo.Msg
     | LoginMsg of Login.Msg
     | SignupMsg of Signup.Msg
+    | SettingsMsg of Settings.Msg

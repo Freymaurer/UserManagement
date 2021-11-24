@@ -34,11 +34,20 @@ module Todo =
             Input = ""
         }
 
+module Settings =
+    type Model = {
+        Default: obj
+    } with
+        static member init = {
+            Default = ""
+        }
+
 [<RequireQualifiedAccess>]
 type PageModel =
 | Todo of Todo.Model 
 | Login of Login.Model
 | Signup of Signup.Model
+| Settings of Settings.Model
 
 type UserState = {
     LoggedIn    : bool
