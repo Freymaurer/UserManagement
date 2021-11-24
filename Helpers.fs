@@ -84,7 +84,14 @@ let npm =
             |> failwith
 
     createProcess npmPath
-let mkcert_windows = createProcess "./.certs/mkcert_windows.exe"
+
+let mkcert_windows =
+    let mkcertLink = @"https://github.com/FiloSottile/mkcert#installation"
+    if RuntimeInformation.IsOSPlatform(OSPlatform.Windows) then
+        createProcess "./.certs/mkcert_windows.exe"
+    else
+        failwith $"Cannot create local certificates. To check how to install local certificates pls visit: {mkcertLink}.
+        Copy path to created certs in webpack.config.js -> module.exports -> devServer -> https."
 
 ///Choose process to open Browser with depending on OS. Thanks to @zyzhu for hinting at a solution (https://github.com/plotly/Plotly.NET/issues/31)
 let openBrowser url =
