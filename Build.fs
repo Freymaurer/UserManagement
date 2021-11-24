@@ -43,18 +43,27 @@ Target.create "Azure" (fun _ ->
     |> ignore
 )
 
-Target.create "Run" (fun _ ->
-    run dotnet "build" sharedPath
-    [ "server", dotnet "watch run" serverPath
-      "client", dotnet "fable watch -o output -s --run webpack-dev-server" clientPath ]
-    |> runParallel
+Target.create "certificates" (fun _ ->
+    let isExisting = Fake.IO.File.allExist ["./.certs/localhost.pem"; "./.certs/localhost-key.pem"]
+    if not isExisting then
+        run mkcert_windows "-install localhost" "./.certs"
 )
 
-Target.create "run-db" (fun _ ->
+Target.create "Run" (fun _ ->
+    let createCertsIfNotExisting =
+        let isExisting = Fake.IO.File.allExist ["./.certs/localhost.pem"; "./.certs/localhost-key.pem"]
+        if not isExisting then
+            run mkcert_windows "-install localhost" "./.certs"
+    let url = "https://localhost:8080"
     run dotnet "build" sharedPath
-    [   "server", dotnet "watch run" serverPath
-        "client", dotnet "fable watch -o output -s --run webpack-dev-server" clientPath
-        "database", dockerCompose "-f .\db\docker-compose.yaml -p safe-users up" "" ]
+    [
+        "client", dotnet "fable watch -o output -s --run webpack-dev-server --https" clientPath
+        "server", dotnet "watch run" serverPath
+        let _ =
+            System.Threading.Thread.Sleep(System.TimeSpan(0,0,5))
+            openBrowser url
+        "database", dockerCompose "-f .\db\docker-compose.yaml -p safe-users up" ""
+    ]
     |> runParallel
 )
 

@@ -3,6 +3,7 @@ framework: net5.0
 storage: none
 
 nuget Fable.Remoting.Giraffe
+nuget Feliz.Bulma.Divider
 nuget Saturn
 nuget Expecto
 nuget Microsoft.AspNetCore.Authentication.Google 5.0.12

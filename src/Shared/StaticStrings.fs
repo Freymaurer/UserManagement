@@ -6,7 +6,7 @@ let ServiceMail = "Example@email.de"
 
 module SameSiteUrls =
     [<Literal>]
-    let PageUrl = "http://localhost:8080"
+    let PageUrl = "https://localhost:8080"
 
     [<Literal>]
     let logoutUrl = "/api/Account/Logout"

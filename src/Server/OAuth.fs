@@ -72,7 +72,7 @@ let externalLoginCallback : HttpHandler =
                             let! addClaims =
                                 userManager.AddClaimsAsync(user,[
                                         Claim(
-                                            ClaimTypes.Role,"Guest",ClaimValueTypes.String,LoginMethods.LocalAuthority
+                                            ClaimTypes.Role,string IdentityTypes.User,ClaimValueTypes.String,LoginMethods.LocalAuthority
                                         );
                                         Claim(
                                             CustomClaims.LoginMethod,issuer,ClaimValueTypes.String,LoginMethods.LocalAuthority

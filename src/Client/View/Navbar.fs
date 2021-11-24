@@ -36,7 +36,7 @@ let private signupButton dispatch =
 
 let private profileItem dispatch =
     Bulma.navbarItem.a [
-        Html.i [prop.className "fa fa-id-badge fa-fw fa-pull-left"]
+        Html.i [prop.className "fas fa-id-badge fa-fw fa-pull-left"]
         Html.span "Profile"
     ]
 
@@ -45,7 +45,7 @@ let private logoutItem dispatch =
     Bulma.navbarItem.a [
         prop.onClick (fun _ -> IdentityMsg Identity.LogoutRequest |> dispatch)
         prop.children [
-            Html.i [prop.className "fa fa-sign-out-alt fa-fw fa-pull-left"]
+            Html.i [prop.className "fas fa-sign-out-alt fa-fw fa-pull-left"]
             Html.span "Log Out"
         ]
     ]

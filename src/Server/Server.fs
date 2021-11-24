@@ -115,11 +115,11 @@ let webApp =
     router {
         get "/test/test1" (htmlString "<h1>Hi this is test response 1</h1>")
         // urls for challenge against oauth login
-        //forward StaticStrings.OAuthPaths.GoogleOAuth OAuth.googleAuth
-        //forward StaticStrings.OAuthPaths.GithubOAuth OAuth.gitHubAuth
-        //forward StaticStrings.OAuthPaths.OrcidOAuth OAuth.orcidAuth
-        //// oauth callback: creates useraccount and external user login for oauth user
-        //forward OAuthPaths.ExternalLoginCallback (OAuth.externalLoginCallback >=> redirectTo false SameSiteUrls.PageUrl)
+        forward StaticStrings.OAuthPaths.GoogleOAuth OAuth.googleAuth
+        forward StaticStrings.OAuthPaths.GithubOAuth OAuth.gitHubAuth
+        forward StaticStrings.OAuthPaths.OrcidOAuth OAuth.orcidAuth
+        // oauth callback: creates useraccount and external user login for oauth user
+        forward OAuthPaths.ExternalLoginCallback (OAuth.externalLoginCallback >=> redirectTo false SameSiteUrls.PageUrl)
         // extra log out url; not necessary
         forward SameSiteUrls.logoutUrl (signOut "Cookies")
         forward "" todoApi
@@ -229,7 +229,7 @@ let configureServices (services : IServiceCollection) =
             fun (options:OAuth.OAuthOptions) ->
                 options.ClientId <- testGithubId
                 options.ClientSecret <- testGithubSecret
-                options.CallbackPath <- new PathString("/signin-github")
+                options.CallbackPath <- PathString("/signin-github")
 
                 options.AuthorizationEndpoint <- "https://github.com/login/oauth/authorize"
                 options.TokenEndpoint <- "https://github.com/login/oauth/access_token"
@@ -266,7 +266,7 @@ let configureServices (services : IServiceCollection) =
             fun (options:OAuth.OAuthOptions) ->
                 options.ClientId <- testOrcidId
                 options.ClientSecret <- testOrcidSecret
-                options.CallbackPath <- new PathString("/signin-orcid")
+                options.CallbackPath <- PathString("/signin-orcid")
                 options.Scope.Add "/authenticate"//"openid" ///"/read-limited" needs member api - 6.5k annual
 
                 options.AuthorizationEndpoint <- "https://orcid.org/oauth/authorize"
@@ -320,11 +320,12 @@ let app =
     application {
         app_config (fun a -> a.UseAuthentication().UseAuthorization() )
         service_config configureServices
-        url "http://0.0.0.0:8085"
+        url "https://0.0.0.0:8085"
         use_router webApp
         memory_cache
         use_static "public"
         use_gzip
+        force_ssl
     }
 
 run app
