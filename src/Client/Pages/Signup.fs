@@ -30,7 +30,9 @@ let mainElement (model:Model) (state:Signup.Model) dispatch =
             Bulma.label "Email"
             Bulma.control.div [
                 Bulma.input.email [
+                    // https://stackoverflow.com/questions/37443993/reactjs-value-of-previous-input-is-set-by-default-in-new-input
                     prop.id "signup_email"
+                    prop.key "key_signup_email"
                     prop.placeholder "email@provider.de"
                     prop.onKeyDown(fun e ->
                         match e.key with
@@ -52,6 +54,7 @@ let mainElement (model:Model) (state:Signup.Model) dispatch =
             Bulma.control.div [
                 Bulma.input.text [
                     prop.id "signup_username"
+                    prop.key "key_signup_username"
                     prop.placeholder "username"
                     prop.onKeyDown(fun e ->
                         match e.key with
@@ -73,6 +76,7 @@ let mainElement (model:Model) (state:Signup.Model) dispatch =
             Bulma.control.div [
                 Bulma.input.password [
                     prop.id "signup_password"
+                    prop.key "key_signup_password"
                     prop.placeholder "*****"
                     prop.onKeyDown(fun e ->
                         match e.key with
@@ -94,6 +98,7 @@ let mainElement (model:Model) (state:Signup.Model) dispatch =
             Bulma.control.div [
                 Bulma.input.password [
                     prop.id "signup_email_duplicate"
+                    prop.key "key_signup_email_duplicate"
                     prop.placeholder "*****"
                     prop.onKeyDown(fun e ->
                         match e.key with
