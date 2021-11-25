@@ -21,6 +21,10 @@ module LoginMethods =
     let Github = "GitHub"
     let Google = "Google"
 
+/// Use this function for conditional if..else.. cases which return IdentityResults.
+/// Not sure if this is good style.
+let identitySuccess = task {return IdentityResult.Success}
+
 let showErrors (errors : IdentityError seq) =
     errors
     |> Seq.fold (fun acc err ->
@@ -94,4 +98,26 @@ let getActiveUser (context: HttpContext) : User =
         let role = claims |> List.find (fun (claimType,value) -> claimType = ClaimTypes.Role) |> (snd >> Roles.ofString)
         let origin = claims |> List.find (fun (claimType,value) -> claimType = CustomClaims.LoginMethod) |> snd
         return { Username = user.UserName; Email = user.Email; Role = role; AccountOrigin = origin; UniqueId = user.Id; ExtLogin = extLogin }
+    } |> fun x -> x.Result
+
+let updateUserProfile (newUserInfo:User) (context: HttpContext) =
+    task {
+        let userManager = context.GetService<UserManager<IdentityUser>>()
+        let! user = userManager.GetUserAsync context.User
+        let! updateEmail =
+            if newUserInfo.Email <> user.Email then userManager.SetEmailAsync(user,newUserInfo.Email) else identitySuccess
+        let! updateUserName =
+            if newUserInfo.Username <> user.UserName then userManager.SetUserNameAsync(user,newUserInfo.Username) else identitySuccess
+        match updateEmail.Succeeded, updateUserName.Succeeded with
+        | true, true ->
+            let signInManager = context.GetService<SignInManager<IdentityUser>>()
+            do! signInManager.SignOutAsync()
+            let! result = signInManager.SignInAsync(user,isPersistent = true)
+            return Ok newUserInfo
+        | true, false ->
+            return Error (showErrors updateUserName.Errors)
+        | false, true ->
+            return Error (showErrors updateEmail.Errors)
+        | false, false ->
+            return Error (Seq.concat [updateEmail.Errors; updateUserName.Errors] |> showErrors)
     } |> fun x -> x.Result

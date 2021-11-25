@@ -29,6 +29,7 @@ type IIdentityApi = {
 }
 
 type IUserApi = {
-    getActiveUser   : unit -> Async<User>
-    logout          : unit -> Async<unit>
+    getActiveUser       : unit -> Async<User>
+    updateUserProfile   : User -> Async<Result<User,string>>
+    logout              : unit -> Async<unit>
 }

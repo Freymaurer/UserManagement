@@ -6,8 +6,6 @@ open Shared
 open Model
 open Messages
 
-let curry f a b = f (a,b)
-
 module Identity =
 
     open Identity
@@ -75,6 +73,23 @@ module Identity =
             let userState : UserState = {LoggedIn = true; User = Some user}
             let nextModel = { model with UserState = userState }
             nextModel, Cmd.none
+        | UpdateUserProfileRequest newUserInfo ->
+            let cmd =
+                Cmd.OfAsync.either
+                    Api.userApi.updateUserProfile
+                    newUserInfo
+                    (UpdateUserProfileResponse >> IdentityMsg)
+                    (curry GenericError Cmd.none)
+            model, cmd
+        | UpdateUserProfileResponse res ->
+            let model, cmd =
+                match res with
+                | Error e -> Browser.Dom.window.alert(e); model, Cmd.none
+                | Ok user ->
+                    let nextModel = { model with UserState = { model.UserState with User = Some user } }
+                    let cmd = UpdatePage Route.Profile |> Cmd.ofMsg
+                    nextModel, cmd
+            model, cmd
         | GetNumRequest ->
             let cmd =
                 Cmd.OfAsync.perform
@@ -97,9 +112,15 @@ let updatePageHandler (model:Model) (page:Route) : Model * Cmd<Msg> =
         let s, cmd = Login.init()
         let nextModel = {model with PageModel = PageModel.Login s}
         nextModel, cmd
-    | Route.Settings ->
-        let s, cmd = Settings.init()
-        let nextModel = {model with PageModel = PageModel.Settings s}
+    | Route.Profile ->
+        /// Hydrate model with user data, to effectively change all params on update
+        /// This might be necessary to restructure if user profile contains more and more information
+        let s, cmd =
+            if model.UserState.LoggedIn && model.UserState.User.IsSome then
+                Profile.init(model.UserState.User)
+            else
+                Profile.init(None)
+        let nextModel = {model with PageModel = PageModel.Profile s}
         nextModel, cmd
 
 let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
@@ -129,8 +150,8 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
     | PageModel.Signup state, SignupMsg msg ->
         let nextModel, cmd = Signup.update msg model state
         nextModel, cmd
-    | PageModel.Settings state, SettingsMsg msg ->
-        let nextModel, cmd = Settings.update msg model state
+    | PageModel.Profile state, ProfileMsg msg ->
+        let nextModel, cmd = Profile.update msg model state
         nextModel, cmd
     | model, msg ->
         let text = $"Cannot handle ({model},{msg}) combination. Please check update logic."

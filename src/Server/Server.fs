@@ -63,8 +63,9 @@ let identityApi (ctx: HttpContext) : IIdentityApi = {
 }
 
 let userApi (ctx: HttpContext) : IUserApi = {
-    getActiveUser   = fun () -> async { return UserIdentity.getActiveUser ctx }
-    logout          = fun () -> async { return UserIdentity.logout ctx }
+    getActiveUser       = fun ()    -> async { return UserIdentity.getActiveUser ctx }
+    updateUserProfile   = fun user  -> async { return UserIdentity.updateUserProfile user ctx }
+    logout              = fun ()    -> async { return UserIdentity.logout ctx }
 }
 
 let errorHandler (ex:exn) (routeInfo:RouteInfo<HttpContext>) =

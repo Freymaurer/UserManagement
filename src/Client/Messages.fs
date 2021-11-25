@@ -15,9 +15,15 @@ type System.Exception with
         | ex ->
             ex.Message
 
+let curry f a b = f (a,b)
+
 module Identity =
 
     open IdentityTypes
+
+    // Might be possible to refactor most "Result<_,_> logics to ignore the error part.
+    // In this case change Server functions to remove Ok (res) and replace Error (errors) with failwith $"{errors}"
+    // didnt't test it tough
 
     type Msg =
     | LoginRequest of LoginInfo
@@ -28,6 +34,8 @@ module Identity =
     | LogoutResponse of unit
     | GetActiveUserRequest
     | GetActiveUserResponse of User
+    | UpdateUserProfileRequest of IdentityTypes.User
+    | UpdateUserProfileResponse of Result<IdentityTypes.User,string>
     // this is only for testing during dev.
     | GetNumRequest
 
@@ -47,9 +55,9 @@ module Signup =
     | UpdateSignupInfo          of IdentityTypes.SignupInfo
     | UpdatePasswordDuplicate   of string
 
-module Settings =
+module Profile =
     type Msg =
-    | DefaultMsg
+    | UpdateNewProfileInfo of IdentityTypes.User
 
 type Msg =
     | UpdateNavbarMenuState of bool
@@ -60,4 +68,4 @@ type Msg =
     | TodoMsg of Todo.Msg
     | LoginMsg of Login.Msg
     | SignupMsg of Signup.Msg
-    | SettingsMsg of Settings.Msg
+    | ProfileMsg of Profile.Msg

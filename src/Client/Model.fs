@@ -34,12 +34,12 @@ module Todo =
             Input = ""
         }
 
-module Settings =
+module Profile =
     type Model = {
-        Default: obj
+        NewProfileInfo: User option
     } with
-        static member init = {
-            Default = ""
+        static member init(?userInfo) = {
+            NewProfileInfo = userInfo
         }
 
 [<RequireQualifiedAccess>]
@@ -47,7 +47,7 @@ type PageModel =
 | Todo of Todo.Model 
 | Login of Login.Model
 | Signup of Signup.Model
-| Settings of Settings.Model
+| Profile of Profile.Model
 
 type UserState = {
     LoggedIn    : bool
