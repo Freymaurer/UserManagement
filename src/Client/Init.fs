@@ -13,7 +13,9 @@ let init () : Model * Cmd<Msg> =
         UserState       = UserState.init
         NavbarMenuState = false
     }
-
-    let userCmd = IdentityMsg Identity.GetActiveUserRequest |> Cmd.ofMsg
-
+    let userCmd =
+        Cmd.OfAsync.perform
+            Api.userApi.getActiveUser
+            ()
+            (Identity.GetActiveUserResponse >> IdentityMsg)
     model, Cmd.batch [cmd; userCmd]

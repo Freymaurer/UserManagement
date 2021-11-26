@@ -42,12 +42,26 @@ module Profile =
             NewProfileInfo = userInfo
         }
 
+module AuthTest =
+    [<RequireQualifiedAccessAttribute>]
+    type ResponseMsg =
+    | User of string
+    | Admin of string
+
+    type Model = {
+        Response : ResponseMsg option
+    } with
+    static member init() = {
+        Response = None
+    }
+
 [<RequireQualifiedAccess>]
 type PageModel =
 | Todo of Todo.Model 
 | Login of Login.Model
 | Signup of Signup.Model
 | Profile of Profile.Model
+| AuthTest of AuthTest.Model
 
 type UserState = {
     LoggedIn    : bool

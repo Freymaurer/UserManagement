@@ -32,4 +32,9 @@ type IUserApi = {
     getActiveUser       : unit -> Async<User>
     updateUserProfile   : User -> Async<Result<User,string>>
     logout              : unit -> Async<unit>
+    getHelloUser        : unit -> Async<string>
+}
+
+type IAdminApi = {
+    getHelloAdmin       : unit -> Async<string>
 }

@@ -7,3 +7,4 @@ type Route =
 | Login
 | Signup
 | Profile
+| AuthTest

@@ -46,6 +46,13 @@ module Todo =
     | AddTodo
     | AddedTodo of Todo
 
+module AuthTest =
+    type Msg =
+    | GetUserHelloRequest
+    | GetUserHelloResponse of string
+    | GetAdminHelloRequest
+    | GetAdminHelloResponse of string
+
 module Login =
     type Msg =
     | UpdateLoginInfo of IdentityTypes.LoginInfo
@@ -69,3 +76,4 @@ type Msg =
     | LoginMsg of Login.Msg
     | SignupMsg of Signup.Msg
     | ProfileMsg of Profile.Msg
+    | AuthTestMsg of AuthTest.Msg

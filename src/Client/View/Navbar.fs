@@ -6,6 +6,7 @@ open Feliz.Bulma
 open Messages
 open Fable.FontAwesome
 open Fable.React
+open Feliz
 
 let private bulmaLogo =
     Bulma.navbarItem.a [
@@ -18,6 +19,12 @@ let private navigationElements dispatch =
             prop.text "Home"
             prop.onClick (fun _ ->
                 UpdatePage Route.Todo |> dispatch
+            )
+        ]
+        Bulma.navbarItem.a [
+            prop.text "Auth_Test"
+            prop.onClick (fun _ ->
+                UpdatePage Route.AuthTest |> dispatch
             )
         ]
     ]
@@ -38,7 +45,7 @@ let private settingsItem dispatch =
     Bulma.navbarItem.a [
         prop.onClick (fun _ -> UpdatePage Route.Profile |> dispatch)
         prop.children [
-            Html.i [prop.className "fas fa-id-badge fa-fw fa-pull-left"]
+            Html.i [prop.className "fas fa-id-badge fa-fw"; prop.style [style.marginRight (length.rem 1)]]
             Html.span "Settings"
         ]
     ]
@@ -48,7 +55,7 @@ let private logoutItem dispatch =
     Bulma.navbarItem.a [
         prop.onClick (fun _ -> IdentityMsg Identity.LogoutRequest |> dispatch)
         prop.children [
-            Html.i [prop.className "fas fa-sign-out-alt fa-fw fa-pull-left"]
+            Html.i [prop.className "fas fa-sign-out-alt fa-fw"; prop.style [style.marginRight (length.rem 1)]]
             Html.span "Log Out"
         ]
     ]
@@ -76,12 +83,13 @@ let private loggedInElement (model:Model) dispatch =
                 Bulma.navbarLink.a [
                     Bulma.navbarLink.isArrowless
                     prop.children [
-                        Fa.i [Fa.Solid.User; Fa.PullLeft] []
-                        span [][str model.UserState.User.Value.Username]
+                        Html.i [prop.className "fas fa-user-cog"; prop.style [style.marginRight (length.rem 1)]]
+                        Html.span model.UserState.User.Value.Username
                     ]
                 ]
                 Bulma.navbarDropdown.div [
                     Bulma.navbarDropdown.isBoxed
+                    Bulma.navbarDropdown.isRight
                     prop.children [
                         settingsItem dispatch
                         logoutItem dispatch

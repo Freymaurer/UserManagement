@@ -66,10 +66,23 @@ let userApi (ctx: HttpContext) : IUserApi = {
     getActiveUser       = fun ()    -> async { return UserIdentity.getActiveUser ctx }
     updateUserProfile   = fun user  -> async { return UserIdentity.updateUserProfile user ctx }
     logout              = fun ()    -> async { return UserIdentity.logout ctx }
+    getHelloUser        = fun ()    -> async {
+        let user = ctx.User.Identity.Name
+        let msg = $"Hello {user}! I wish you the most wonderful day!"
+        return msg
+    }
+}
+
+let adminApi (ctx: HttpContext) : IAdminApi = {
+    getHelloAdmin = fun () -> async {
+        let user = ctx.User.Identity.Name
+        let msg = $"Hello {user}! It is an honor to be in the company of such a great admin!"
+        return msg
+    }
 }
 
 let errorHandler (ex:exn) (routeInfo:RouteInfo<HttpContext>) =
-    let msg = sprintf "[SERVER SIDE ERROR]: %A @%s." ex.Message routeInfo.path
+    let msg = sprintf "[SERVER ERROR]: %A @%s." ex.Message routeInfo.path
     Propagate msg
 
 let webApp =
@@ -97,18 +110,31 @@ let webApp =
         |> Remoting.withErrorHandler errorHandler
         |> Remoting.buildHttpHandler
 
+    let adminApi =
+        Remoting.createApi ()
+        |> Remoting.withRouteBuilder Route.builder
+        |> Remoting.fromContext adminApi
+        |> Remoting.withDiagnosticsLogger(printfn "%A")
+        |> Remoting.withErrorHandler errorHandler
+        |> Remoting.buildHttpHandler
+
+    let parsableError errorMsg =
+        sprintf """{"error":"%s", "ignored" : false, "handled" : false}""" errorMsg
+
     let mustBeLoggedIn : HttpHandler =
         requiresAuthentication (
-            setStatusCode 401 >=> text "Access Denied, not logged in."
+            setStatusCode 401 >=> json (parsableError "Access Denied, not logged in.")
         )
 
     let mustBeAdmin : HttpHandler =
         authorizeUser
             ( fun u ->
-                u.HasClaim (ClaimTypes.Role, "Developer")
-                || u.HasClaim (ClaimTypes.Role, "Admin")
+                u.HasClaim (ClaimTypes.Role, string IdentityTypes.Developer)
+                || u.HasClaim (ClaimTypes.Role, string IdentityTypes.Admin)
             )
-            (setStatusCode 401 >=> text "Access Denied, not an admin.")
+            (setStatusCode 401
+                >=> json (parsableError "Access Denied, not an admin.")
+            )
 
     // The exact order of the following routes is important to guarantee correct auth.
     // Appearently, the "mustBeLoggedIn >=> mustBeAdmin >=>" Syntax will provoke "access denied results" even if the correct
@@ -126,6 +152,7 @@ let webApp =
         forward "" todoApi
         forward "" identityApi
         forward "" (mustBeLoggedIn >=> userApi)
+        forward "" (mustBeLoggedIn >=> mustBeAdmin >=> adminApi)
         not_found_handler (
             setStatusCode 404 >=> text "Page not found."
         )

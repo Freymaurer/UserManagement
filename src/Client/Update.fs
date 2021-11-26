@@ -122,6 +122,10 @@ let updatePageHandler (model:Model) (page:Route) : Model * Cmd<Msg> =
                 Profile.init(None)
         let nextModel = {model with PageModel = PageModel.Profile s}
         nextModel, cmd
+    | Route.AuthTest ->
+        let s, cmd = AuthTest.init()
+        let nextModel = {model with PageModel = PageModel.AuthTest s}
+        nextModel, cmd
 
 let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
     match model.PageModel, msg with
@@ -132,7 +136,11 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
         let nextModel = {model with NavbarMenuState = b}
         nextModel, Cmd.none
     | _, GenericError (nextCmd,e) ->
-        let alertMsg = $"{e.GetPropagatedError()}"
+        let alertMsg =
+            try 
+                e.GetPropagatedError()
+            with
+                | exn -> e.Message
         Browser.Dom.window.alert(alertMsg)
         model, nextCmd
     | _, GenericLog str ->
@@ -153,9 +161,12 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
     | PageModel.Profile state, ProfileMsg msg ->
         let nextModel, cmd = Profile.update msg model state
         nextModel, cmd
+    | PageModel.AuthTest state, AuthTestMsg msg ->
+        let nextModel, cmd = AuthTest.update msg model state
+        nextModel, cmd
     | model, msg ->
         let text = $"Cannot handle ({model},{msg}) combination. Please check update logic."
-        Browser.Dom.window.alert text
+        //Browser.Dom.window.alert text
         failwith text
         
         
