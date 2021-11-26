@@ -20,6 +20,8 @@ let mainElement (model:Model) dispatch =
         Profile.mainElement model state dispatch
     | PageModel.AuthTest state ->
         AuthTest.mainElement model state dispatch
+    | PageModel.AdminUsers state ->
+        AdminUsers.mainElement model state dispatch
 
 let view (model: Model) (dispatch: Msg -> unit) =
     Bulma.hero [

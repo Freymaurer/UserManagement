@@ -12,6 +12,7 @@
         <Compile Include="Routing.fs" />
         <Compile Include="Messages.fs" />
         <Compile Include="Model.fs" />
+        <Compile Include="Pages\Admin\AdminUsers.fs" />
         <Compile Include="Pages\User\AuthTest.fs" />
         <Compile Include="Pages\User\Profile.fs" />
         <Compile Include="Pages\Todo.fs" />

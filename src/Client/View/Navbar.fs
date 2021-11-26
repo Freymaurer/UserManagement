@@ -45,8 +45,17 @@ let private settingsItem dispatch =
     Bulma.navbarItem.a [
         prop.onClick (fun _ -> UpdatePage Route.Profile |> dispatch)
         prop.children [
-            Html.i [prop.className "fas fa-id-badge fa-fw"; prop.style [style.marginRight (length.rem 1)]]
+            Html.i [prop.className "fas fa-user-cog fa-fw"; prop.style [style.marginRight (length.rem 1)]]
             Html.span "Settings"
+        ]
+    ]
+
+let private adminUsersItem dispatch =
+    Bulma.navbarItem.a [
+        prop.onClick (fun _ -> UpdatePage Route.AdminUsers |> dispatch)
+        prop.children [
+            Html.i [prop.className "fas fa-users fa-fw"; prop.style [style.marginRight (length.rem 1)]]
+            Html.span "Users"
         ]
     ]
 
@@ -83,7 +92,7 @@ let private loggedInElement (model:Model) dispatch =
                 Bulma.navbarLink.a [
                     Bulma.navbarLink.isArrowless
                     prop.children [
-                        Html.i [prop.className "fas fa-user-cog"; prop.style [style.marginRight (length.rem 1)]]
+                        Html.i [prop.className "fas fa-user"; prop.style [style.marginRight (length.rem 1)]]
                         Html.span model.UserState.User.Value.Username
                     ]
                 ]
@@ -92,6 +101,8 @@ let private loggedInElement (model:Model) dispatch =
                     Bulma.navbarDropdown.isRight
                     prop.children [
                         settingsItem dispatch
+                        if model.UserState.User.Value.Role.isAdmin then adminUsersItem dispatch
+                        Bulma.navbarDivider []
                         logoutItem dispatch
                     ]
                 ]

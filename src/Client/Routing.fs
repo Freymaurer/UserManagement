@@ -8,3 +8,4 @@ type Route =
 | Signup
 | Profile
 | AuthTest
+| AdminUsers

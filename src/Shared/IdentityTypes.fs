@@ -41,6 +41,9 @@ type Roles =
         | "User"        -> User
         | anythingElse  -> failwith $"Could not parse {anythingElse} to user role."
 
+    member this.isAdmin = this = Developer || this = Admin 
+        
+
 type User = {
     Username : string
     Email : string

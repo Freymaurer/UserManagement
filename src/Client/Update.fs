@@ -129,6 +129,10 @@ let updatePageHandler (model:Model) (page:Route) : Model * Cmd<Msg> =
         let s, cmd = AuthTest.init()
         let nextModel = {model with PageModel = PageModel.AuthTest s}
         nextModel, cmd
+    | Route.AdminUsers ->
+        let s, cmd = AdminUsers.init()
+        let nextModel = {model with PageModel = PageModel.AdminUsers s}
+        nextModel, cmd
 
 let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
     match model.PageModel, msg with
@@ -172,6 +176,9 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
         nextModel, cmd
     | PageModel.AuthTest state, AuthTestMsg msg ->
         let nextModel, cmd = AuthTest.update msg model state
+        nextModel, cmd
+    | PageModel.AdminUsers state, AdminUsersMsg msg ->
+        let nextModel, cmd = AdminUsers.update msg model state
         nextModel, cmd
     | model, msg ->
         let text = $"Cannot handle ({model},{msg}) combination. Please check update logic."

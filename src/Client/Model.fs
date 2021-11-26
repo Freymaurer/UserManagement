@@ -59,6 +59,14 @@ module AuthTest =
         Response = None
     }
 
+module AdminUsers =
+    type Model = {
+        Default: obj
+    } with
+        static member init() = {
+            Default = ""
+        }
+
 [<RequireQualifiedAccess>]
 type PageModel =
 | Todo of Todo.Model 
@@ -66,6 +74,7 @@ type PageModel =
 | Signup of Signup.Model
 | Profile of Profile.Model
 | AuthTest of AuthTest.Model
+| AdminUsers of AdminUsers.Model
 
 type UserState = {
     LoggedIn            : bool

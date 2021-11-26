@@ -65,6 +65,10 @@ module Profile =
     | UpdateNewPassword         of string
     | UpdateNewPasswordCheck    of string
 
+module AdminUsers =
+    type Msg =
+    | DefaultMsg
+
 type Msg =
     | UpdateNavbarMenuState of bool
     | UpdatePasswordModal of (IdentityTypes.LoginInfo -> Messages.Msg) option
@@ -78,3 +82,4 @@ type Msg =
     | SignupMsg of Signup.Msg
     | ProfileMsg of Profile.Msg
     | AuthTestMsg of AuthTest.Msg
+    | AdminUsersMsg of AdminUsers.Msg
