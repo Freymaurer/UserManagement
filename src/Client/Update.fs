@@ -21,14 +21,11 @@ module Identity =
                     (LoginResponse >> IdentityMsg)
                     (curry GenericError Cmd.none)
             model, cmd
-        | LoginResponse res ->
+        | LoginResponse () ->
             let cmd =
-                match res with
-                | Error e   -> Browser.Dom.window.alert(e); Cmd.none
-                | Ok ()     ->
-                    let msg = IdentityMsg GetActiveUserRequest |> Cmd.ofMsg
-                    let goToTodoPage = UpdatePage Route.Todo |> Cmd.ofMsg
-                    Cmd.batch [msg; goToTodoPage]
+                let msg = IdentityMsg GetActiveUserRequest |> Cmd.ofMsg
+                let goToTodoPage = UpdatePage Route.Todo |> Cmd.ofMsg
+                Cmd.batch [msg; goToTodoPage]
             model, cmd
         | SignupRequest signupInfo ->
             let cmd =
@@ -37,14 +34,11 @@ module Identity =
                     (SignupResponse >> IdentityMsg)
                     (curry GenericError Cmd.none)
             model, cmd
-        | SignupResponse res ->
+        | SignupResponse() ->
             let cmd =
-                match res with
-                | Error e   -> Browser.Dom.window.alert(e); Cmd.none
-                | Ok ()     ->
-                    let msg = IdentityMsg GetActiveUserRequest |> Cmd.ofMsg
-                    let goToTodoPage = UpdatePage Route.Todo |> Cmd.ofMsg
-                    Cmd.batch [msg; goToTodoPage]
+                let msg = IdentityMsg GetActiveUserRequest |> Cmd.ofMsg
+                let goToTodoPage = UpdatePage Route.Todo |> Cmd.ofMsg
+                Cmd.batch [msg; goToTodoPage]
             model, cmd
         | LogoutRequest ->
             let cmd =
@@ -59,8 +53,8 @@ module Identity =
                 model with
                     UserState = UserState.init;
             }
-            let cmd = UpdatePage Route.Todo |> Cmd.ofMsg
-            nextModel, cmd
+            Browser.Dom.window.location.reload()
+            nextModel, Cmd.none
         | GetActiveUserRequest ->
             let cmd =
                 Cmd.OfAsync.either
@@ -70,7 +64,7 @@ module Identity =
                     (curry GenericError Cmd.none)
             model, cmd
         | GetActiveUserResponse user ->
-            let userState : UserState = {LoggedIn = true; User = Some user}
+            let userState : UserState = { UserState.init with LoggedIn = true; User = Some user} 
             let nextModel = { model with UserState = userState }
             nextModel, Cmd.none
         | UpdateUserProfileRequest newUserInfo ->
@@ -81,15 +75,24 @@ module Identity =
                     (UpdateUserProfileResponse >> IdentityMsg)
                     (curry GenericError Cmd.none)
             model, cmd
-        | UpdateUserProfileResponse res ->
-            let model, cmd =
-                match res with
-                | Error e -> Browser.Dom.window.alert(e); model, Cmd.none
-                | Ok user ->
-                    let nextModel = { model with UserState = { model.UserState with User = Some user } }
-                    let cmd = UpdatePage Route.Profile |> Cmd.ofMsg
-                    nextModel, cmd
+        | UpdateUserProfileResponse user ->
+            let nextModel = { model with UserState = { model.UserState with User = Some user } }
+            let cmd = UpdatePage Route.Profile |> Cmd.ofMsg
+            nextModel, cmd
+        | UpdateUserPasswordRequest (login,newPw) ->
+            let cmd =
+                Cmd.OfAsync.either
+                    Api.userApi.updatePassword
+                    (login,newPw)
+                    (UpdateUserPasswordResponse >> IdentityMsg)
+                    (curry GenericError Cmd.none)
             model, cmd
+        | UpdateUserPasswordResponse() ->
+            let nextModel = {
+                model with
+                    UserState = { model.UserState with PasswordModalPw = ""; ShowPasswordModal = None }
+            }
+            nextModel, Cmd.none
         | GetNumRequest ->
             let cmd =
                 Cmd.OfAsync.perform
@@ -134,6 +137,12 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
         nextModel, cmd
     | _, UpdateNavbarMenuState b ->
         let nextModel = {model with NavbarMenuState = b}
+        nextModel, Cmd.none
+    | _, UpdatePasswordModal pipeIntoMsg ->
+        let nextModel = {model with UserState = { model.UserState with ShowPasswordModal = pipeIntoMsg; PasswordModalPw = ""} }
+        nextModel, Cmd.none
+    | _, UpdatePasswordModalPw confirmPw ->
+        let nextModel = {model with UserState = { model.UserState with PasswordModalPw = confirmPw} }
         nextModel, Cmd.none
     | _, GenericError (nextCmd,e) ->
         let alertMsg =

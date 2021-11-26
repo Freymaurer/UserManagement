@@ -71,6 +71,7 @@ let userApi (ctx: HttpContext) : IUserApi = {
         let msg = $"Hello {user}! I wish you the most wonderful day!"
         return msg
     }
+    updatePassword      = fun (login,newPw)  -> async { return UserIdentity.updatePassword login newPw ctx }
 }
 
 let adminApi (ctx: HttpContext) : IAdminApi = {

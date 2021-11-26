@@ -94,7 +94,7 @@ let mainElement (model:Model) (state:Signup.Model) dispatch =
             ]
         ]
         Bulma.field.div [
-            Bulma.label "Repeat Password"
+            Bulma.label "Reenter Password"
             Bulma.control.div [
                 Bulma.input.password [
                     prop.id "signup_email_duplicate"

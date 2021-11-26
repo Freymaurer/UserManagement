@@ -23,16 +23,19 @@ type ITodosApi =
 open IdentityTypes
 
 type IIdentityApi = {
-    login       : LoginInfo     -> Async<Result<unit,string>>
-    register    : SignupInfo    -> Async<Result<unit,string>>
+    login       : LoginInfo     -> Async<unit>
+    register    : SignupInfo    -> Async<unit>
     getNumTest  : unit          -> Async<int>
 }
 
 type IUserApi = {
-    getActiveUser       : unit -> Async<User>
-    updateUserProfile   : User -> Async<Result<User,string>>
-    logout              : unit -> Async<unit>
-    getHelloUser        : unit -> Async<string>
+    getActiveUser       : unit                  -> Async<User>
+    updateUserProfile   : User                  -> Async<User>
+    /// LoginInfo is used to store current password for additional auth.
+    /// String is the new password.
+    updatePassword      : LoginInfo * string    -> Async<unit>
+    logout              : unit                  -> Async<unit>
+    getHelloUser        : unit                  -> Async<string>
 }
 
 type IAdminApi = {

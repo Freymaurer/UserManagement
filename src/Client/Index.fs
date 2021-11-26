@@ -30,6 +30,9 @@ let view (model: Model) (dispatch: Msg -> unit) =
             style.backgroundPosition "no-repeat center center fixed"
         ]
         prop.children [
+
+            if model.UserState.ShowPasswordModal.IsSome then PasswordModal.passwordConfirmModal model dispatch
+
             Bulma.heroHead [
                 Navbar.mainNavbarEle model dispatch
             ]

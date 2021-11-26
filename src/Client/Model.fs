@@ -36,10 +36,14 @@ module Todo =
 
 module Profile =
     type Model = {
-        NewProfileInfo: User option
+        NewProfileInfo      : User option
+        NewPassword         : string
+        NewPasswordCheck    : string
     } with
         static member init(?userInfo) = {
-            NewProfileInfo = userInfo
+            NewProfileInfo      = userInfo
+            NewPassword         = ""
+            NewPasswordCheck    = ""
         }
 
 module AuthTest =
@@ -64,12 +68,18 @@ type PageModel =
 | AuthTest of AuthTest.Model
 
 type UserState = {
-    LoggedIn    : bool
-    User        : User option
+    LoggedIn            : bool
+    User                : User option
+    /// this field is used to toggle confirm password modal for important auth functions
+    /// value is follow msg to be piped into.
+    ShowPasswordModal   : (IdentityTypes.LoginInfo -> Messages.Msg) option
+    PasswordModalPw     : string
 } with
     static member init = {
-        LoggedIn    = false
-        User        = None
+        LoggedIn            = false
+        User                = None
+        ShowPasswordModal   = None
+        PasswordModalPw     = ""
     }
 
 type Model = {

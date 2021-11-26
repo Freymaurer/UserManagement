@@ -10,13 +10,14 @@
         <None Include="index.html" />
         <Compile Include="Api.fs" />
         <Compile Include="Routing.fs" />
-        <Compile Include="Model.fs" />
         <Compile Include="Messages.fs" />
+        <Compile Include="Model.fs" />
         <Compile Include="Pages\User\AuthTest.fs" />
         <Compile Include="Pages\User\Profile.fs" />
         <Compile Include="Pages\Todo.fs" />
         <Compile Include="Pages\Signup.fs" />
         <Compile Include="Pages\Login.fs" />
+        <Compile Include="View\PasswordModal.fs" />
         <Compile Include="View\Navbar.fs" />
         <Compile Include="Index.fs" />
         <Compile Include="Init.fs" />

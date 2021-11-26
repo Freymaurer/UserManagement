@@ -4,7 +4,6 @@ open Shared
 open Fable.Remoting.Client
 open Fable.SimpleJson
 open Elmish
-open Model
 
 type System.Exception with
     member this.GetPropagatedError() =
@@ -21,21 +20,19 @@ module Identity =
 
     open IdentityTypes
 
-    // Might be possible to refactor most "Result<_,_> logics to ignore the error part.
-    // In this case change Server functions to remove Ok (res) and replace Error (errors) with failwith $"{errors}"
-    // didnt't test it tough
-
     type Msg =
     | LoginRequest of LoginInfo
-    | LoginResponse of Result<unit,string>
+    | LoginResponse of unit
     | SignupRequest of SignupInfo
-    | SignupResponse of Result<unit,string>
+    | SignupResponse of unit
     | LogoutRequest
     | LogoutResponse of unit
     | GetActiveUserRequest
     | GetActiveUserResponse of User
     | UpdateUserProfileRequest of IdentityTypes.User
-    | UpdateUserProfileResponse of Result<IdentityTypes.User,string>
+    | UpdateUserProfileResponse of IdentityTypes.User
+    | UpdateUserPasswordRequest of IdentityTypes.LoginInfo * newPassword:string
+    | UpdateUserPasswordResponse of unit
     // this is only for testing during dev.
     | GetNumRequest
 
@@ -64,10 +61,14 @@ module Signup =
 
 module Profile =
     type Msg =
-    | UpdateNewProfileInfo of IdentityTypes.User
+    | UpdateNewProfileInfo      of IdentityTypes.User
+    | UpdateNewPassword         of string
+    | UpdateNewPasswordCheck    of string
 
 type Msg =
     | UpdateNavbarMenuState of bool
+    | UpdatePasswordModal of (IdentityTypes.LoginInfo -> Messages.Msg) option
+    | UpdatePasswordModalPw of string
     | UpdatePage of Routing.Route
     | GenericError of Cmd<Msg> * exn
     | GenericLog of string

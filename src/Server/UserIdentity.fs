@@ -38,7 +38,7 @@ let signup (registerModel:SignupInfo) (context: HttpContext) =
         let userManager = context.GetService<UserManager<IdentityUser>>()
         let! result = userManager.CreateAsync(user, registerModel.Password)
         match result.Succeeded with
-        | false -> return Error (showErrors result.Errors)
+        | false -> return failwith (showErrors result.Errors)
         | true  ->
             //let! emailConfirmToken =
             //    userManager.GenerateEmailConfirmationTokenAsync(user)
@@ -52,12 +52,12 @@ let signup (registerModel:SignupInfo) (context: HttpContext) =
             let! addingClaims2 =
                 userManager.AddClaimAsync(user, new Claim(CustomClaims.LoginMethod, LoginMethods.LocalAuthority))
             match addingClaims.Succeeded,addingClaims2.Succeeded with
-            | false,false -> return Error (showErrors result.Errors)
+            | false,false -> return failwith (showErrors result.Errors)
             | true,true  ->
                 let signInManager = context.GetService<SignInManager<IdentityUser>>()
                 do! signInManager.SignInAsync(user, true)
-                return Ok()
-            | _,_ -> return Error (showErrors result.Errors)
+                return ()
+            | _,_ -> return failwith (showErrors result.Errors)
     } |> fun x -> x.Result
 
 let login (user:LoginInfo) (contextPre: HttpContext) =
@@ -68,16 +68,16 @@ let login (user:LoginInfo) (contextPre: HttpContext) =
         } |> fun x -> x.Result
     let context = signOutPrevious contextPre
     match user.Username,user.Password with
-    | "","" -> Error "Password and Username are empty"
-    | "",_ -> Error "Username is empty"
-    | _,"" -> Error "Password is empty"
+    | "","" -> failwith "Password and Username are empty"
+    | "",_ -> failwith "Username is empty"
+    | _,"" -> failwith "Password is empty"
     | _,_ ->
         task {
             let signInManager = context.GetService<SignInManager<IdentityUser>>()
             let! result = signInManager.PasswordSignInAsync(user.Username, user.Password, true, false)
             match result.Succeeded with
-            | true  -> return Ok()
-            | false -> return Error "Invalid login data."
+            | true  -> return ()
+            | false -> return failwith "Invalid login data."
         } |> fun x -> x.Result
 
 let logout (context: HttpContext) =
@@ -113,11 +113,33 @@ let updateUserProfile (newUserInfo:User) (context: HttpContext) =
             let signInManager = context.GetService<SignInManager<IdentityUser>>()
             do! signInManager.SignOutAsync()
             let! result = signInManager.SignInAsync(user,isPersistent = true)
-            return Ok newUserInfo
+            return newUserInfo
         | true, false ->
-            return Error (showErrors updateUserName.Errors)
+            return failwith (showErrors updateUserName.Errors)
         | false, true ->
-            return Error (showErrors updateEmail.Errors)
+            return failwith (showErrors updateEmail.Errors)
         | false, false ->
-            return Error (Seq.concat [updateEmail.Errors; updateUserName.Errors] |> showErrors)
+            return failwith (Seq.concat [updateEmail.Errors; updateUserName.Errors] |> showErrors)
+    } |> fun x -> x.Result
+
+let updatePassword (loginInfo:LoginInfo) (newPassword:string) (context: HttpContext) =
+    task {
+        let userManager = context.GetService<UserManager<IdentityUser>>()
+        let! user = userManager.GetUserAsync context.User
+        /// Might be redundant, as i expect .ChangePasswordAsync(...) to check current password.
+        let! isValidPw = userManager.CheckPasswordAsync(user,loginInfo.Password)
+        match isValidPw with
+        | true ->
+            let! updatePassword =
+                userManager.ChangePasswordAsync(user,loginInfo.Password,newPassword)
+            match updatePassword.Succeeded with
+            | true ->
+                let signInManager = context.GetService<SignInManager<IdentityUser>>()
+                do! signInManager.SignOutAsync()
+                let! result = signInManager.SignInAsync(user,isPersistent = true)
+                return ()
+            | false ->
+                return failwith (showErrors updatePassword.Errors)
+        | false ->
+            failwith "Invalid password."
     } |> fun x -> x.Result

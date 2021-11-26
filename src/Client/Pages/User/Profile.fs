@@ -21,6 +21,14 @@ let update (msg: Profile.Msg) (model:Model) (state: Profile.Model) : Model * Cmd
         let nextState = { state with NewProfileInfo = Some newInfo }
         let nextModel = { model with PageModel = PageModel.Profile nextState }
         nextModel, Cmd.none
+    | UpdateNewPassword newPw ->
+        let nextState = { state with NewPassword = newPw }
+        let nextModel = { model with PageModel = PageModel.Profile nextState }
+        nextModel, Cmd.none
+    | UpdateNewPasswordCheck newPw ->
+        let nextState = { state with NewPasswordCheck = newPw }
+        let nextModel = { model with PageModel = PageModel.Profile nextState }
+        nextModel, Cmd.none
 
 let private isChangedIcon =
     Bulma.icon [
@@ -104,12 +112,76 @@ let updateButton (model:Model) (state:Profile.Model) dispatch =
         prop.children [
             Bulma.control.div [
                 Bulma.button.button [
+                    let isDifferent = model.UserState.User <> state.NewProfileInfo && model.UserState.User.IsSome && state.NewProfileInfo.IsSome
                     color.isSuccess
+                    if not isDifferent then Bulma.button.isStatic
                     prop.text "Update Profile"
                     prop.onClick (fun _ ->
-                        let isDifferent = model.UserState.User <> state.NewProfileInfo && model.UserState.User.IsSome && state.NewProfileInfo.IsSome
                         if isDifferent then
                             Identity.UpdateUserProfileRequest state.NewProfileInfo.Value |> IdentityMsg |> dispatch
+                    )
+                ]
+            ]
+        ]
+    ]
+
+let private passwordControl (model:Model) (state:Profile.Model) dispatch =
+    let isSame = state.NewPassword = state.NewPasswordCheck
+    Bulma.field.div [
+        Bulma.label "Password"
+        Bulma.control.div [
+            Bulma.control.hasIconsRight
+            prop.children [
+                Bulma.input.password [
+                    if not isSame then color.isDanger
+                    prop.placeholder ".. Password"
+                    prop.defaultValue state.NewPassword
+                    prop.onChange (fun (e:Browser.Types.Event) ->
+                        UpdateNewPassword e.Value |> ProfileMsg |> dispatch
+                    )
+                ]
+            ]
+        ]
+    ]
+
+let private passwordCheckControl (model:Model) (state:Profile.Model) dispatch =
+    let isSame = state.NewPassword = state.NewPasswordCheck
+    Bulma.field.div [
+        Bulma.label "Reenter Password"
+        Bulma.control.div [
+            Bulma.control.hasIconsRight
+            prop.children [
+                Bulma.input.password [
+                    if not isSame then color.isDanger
+                    prop.placeholder ".. Reenter Password"
+                    prop.defaultValue state.NewPasswordCheck
+                    prop.onChange (fun (e:Browser.Types.Event) ->
+                        UpdateNewPasswordCheck e.Value |> ProfileMsg |> dispatch
+                    )
+                ]
+                if not isSame then Bulma.help [
+                    color.isDanger
+                    prop.text "Passwords are not the same!"
+                ]
+            ]
+        ]
+    ]
+
+let updatePasswordButton (model: Model) (state:Profile.Model) (dispatch: Msg -> unit) =
+    Bulma.field.div [
+        Bulma.field.isGrouped
+        Bulma.field.isGroupedCentered
+        prop.children [
+            Bulma.control.div [
+                Bulma.button.button [
+                    let isSameAndNotEmpty = state.NewPassword = state.NewPasswordCheck && state.NewPassword <> ""
+                    color.isSuccess
+                    if not isSameAndNotEmpty then Bulma.button.isStatic
+                    prop.text "Update Password"
+                    prop.onClick (fun _ ->
+                        if isSameAndNotEmpty then
+                            let msg = fun x -> Identity.UpdateUserPasswordRequest (x,state.NewPassword) |> IdentityMsg
+                            UpdatePasswordModal (Some msg) |> dispatch
                     )
                 ]
             ]
@@ -127,4 +199,12 @@ let mainElement (model: Model) (state:Profile.Model) (dispatch: Msg -> unit) =
         userRoleElement model dispatch
 
         updateButton model state dispatch
+
+        br []
+
+        Bulma.title "Password"
+        passwordControl model state dispatch
+        passwordCheckControl model state dispatch
+
+        updatePasswordButton model state dispatch
     ]
