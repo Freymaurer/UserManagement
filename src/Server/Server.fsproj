@@ -5,6 +5,7 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="PreviousVersionIdentityFunctions.fs" />
     <Compile Include="UserIdentity.fs" />
     <Compile Include="AdminIdentity.fs" />
     <Compile Include="OAuth.fs" />
