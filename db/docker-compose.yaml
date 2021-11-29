@@ -15,4 +15,4 @@ services:
   adminer-user:
     image: adminer
     ports:
-        - 8081:8080
+        - 8082:8080
