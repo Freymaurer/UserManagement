@@ -67,7 +67,8 @@ module Profile =
 
 module AdminUsers =
     type Msg =
-    | DefaultMsg
+    | GetUsersRequest
+    | GetUsersResponse of IdentityTypes.User []
 
 type Msg =
     | UpdateNavbarMenuState of bool

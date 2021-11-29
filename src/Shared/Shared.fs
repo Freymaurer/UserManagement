@@ -40,4 +40,5 @@ type IUserApi = {
 
 type IAdminApi = {
     getHelloAdmin       : unit -> Async<string>
+    getUsers            : unit -> Async<User []>
 }

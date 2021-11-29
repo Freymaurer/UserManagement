@@ -61,10 +61,10 @@ module AuthTest =
 
 module AdminUsers =
     type Model = {
-        Default: obj
+        Users: IdentityTypes.User []
     } with
         static member init() = {
-            Default = ""
+            Users = [||]
         }
 
 [<RequireQualifiedAccess>]

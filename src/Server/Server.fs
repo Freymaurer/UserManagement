@@ -80,6 +80,7 @@ let adminApi (ctx: HttpContext) : IAdminApi = {
         let msg = $"Hello {user}! It is an honor to be in the company of such a great admin!"
         return msg
     }
+    getUsers = fun () -> async { return AdminIdentity.getUsers ctx }
 }
 
 let errorHandler (ex:exn) (routeInfo:RouteInfo<HttpContext>) =
